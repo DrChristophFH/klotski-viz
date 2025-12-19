@@ -58,7 +58,7 @@ function App() {
 
   // Load the Klotski state space data from packed binary format
   useEffect(() => {
-    loadPackedGraph('/klotski_packed.br')
+    loadPackedGraph('/klotski_packed.bin')
       .then((data) => {
         console.log('Loaded packed Klotski data:', data.metadata)
         

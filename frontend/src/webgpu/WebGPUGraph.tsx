@@ -17,6 +17,7 @@ export interface WebGPUGraphProps {
   selectedNodeId?: string | null;
   pieceColorMapping?: Map<number, number>;
   startPaused?: boolean;
+  highlightEndStates?: boolean;
 }
 
 export interface WebGPUGraphRef {
@@ -34,6 +35,7 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(({
   selectedNodeId,
   pieceColorMapping,
   startPaused = false,
+  highlightEndStates = false,
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<WebGPUGraphRenderer | null>(null);
@@ -62,6 +64,13 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(({
       rendererRef.current.setOnNodeSelect(onNodeSelect);
     }
   }, [onNodeSelect, isInitialized]);
+
+  // Propagate highlightEndStates flag to renderer
+  useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.setHighlightEndStates(!!highlightEndStates);
+    }
+  }, [highlightEndStates, isInitialized]);
   
   // Handle external selection changes
   useEffect(() => {

@@ -16,6 +16,7 @@ export interface GraphNode {
   x?: number;
   y?: number;
   z?: number;
+  is_end?: number;
 }
 
 export interface GraphEdge {
@@ -64,6 +65,7 @@ export class WebGPUGraphRenderer {
   private simParamsBuffer!: GPUBuffer;
   private nodeColorBuffer!: GPUBuffer;
   private connectedNodesBuffer!: GPUBuffer; // Bitfield of connected nodes for highlighting
+  private endStatesBuffer!: GPUBuffer; // 1 = end state, 0 = not
   private nodeReadbackBuffer!: GPUBuffer; // For reading node positions back to CPU
   
   // Pipelines
@@ -174,6 +176,9 @@ export class WebGPUGraphRenderer {
   
   // Piece color mapping: maps piece_id -> color_index for syncing with KlotskiPuzzle
   private pieceColorMapping: Map<number, number> = new Map();
+
+  // Whether to highlight end states (sent as uniform)
+  private highlightEndStates: boolean = false;
   
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -931,6 +936,7 @@ export class WebGPUGraphRenderer {
     this.sphereVertexCount = faces.length * 3;
     
     this.sphereVertexBuffer = this.device.createBuffer({
+      label: 'Sphere Vertex Buffer',
       size: vertexData.byteLength,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
@@ -944,6 +950,7 @@ export class WebGPUGraphRenderer {
     const height = Math.max(1, this.canvas.height);
     
     this.depthTexture = this.device.createTexture({
+      label: 'Depth Texture',
       size: [width, height],
       format: 'depth24plus',
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
@@ -953,10 +960,12 @@ export class WebGPUGraphRenderer {
   private async createPipelines() {
     // Compute pipeline for force simulation
     const computeModule = this.device.createShaderModule({
+      label: 'Force Simulation Compute Shader Module',
       code: forceShaderSource,
     });
     
     this.computePipeline = this.device.createComputePipeline({
+      label: 'Force Simulation Compute Pipeline',
       layout: 'auto',
       compute: {
         module: computeModule,
@@ -966,10 +975,12 @@ export class WebGPUGraphRenderer {
     
     // Render pipeline for nodes
     const nodeModule = this.device.createShaderModule({
+      label: 'Node Shader Module',
       code: nodeShaderSource,
     });
     
     this.nodeRenderPipeline = this.device.createRenderPipeline({
+      label: 'Node Render Pipeline',
       layout: 'auto',
       vertex: {
         module: nodeModule,
@@ -1007,10 +1018,12 @@ export class WebGPUGraphRenderer {
     
     // Render pipeline for edges
     const edgeModule = this.device.createShaderModule({
+      label: 'Edge Shader Module',
       code: edgeShaderSource,
     });
     
     this.edgeRenderPipeline = this.device.createRenderPipeline({
+      label: 'Edge Render Pipeline',
       layout: 'auto',
       vertex: {
         module: edgeModule,
@@ -1047,8 +1060,10 @@ export class WebGPUGraphRenderer {
     });
     
     // Create uniform buffer
+    // Uniform buffer: (view_proj(16) + camera_pos(4) + node_size + edge_width + selected_node + highlight)
     this.uniformBuffer = this.device.createBuffer({
-      size: 64 + 16 + 16, // mat4 + vec4 + params
+      label: 'Uniform Buffer',
+      size: 64 + 16 + 4 + 4 + 4 + 4,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     
@@ -1056,6 +1071,7 @@ export class WebGPUGraphRenderer {
     // SimParams struct in WGSL is 64 bytes due to alignment:
     // 9 x f32/u32 = 36 bytes + vec3 padding (12 bytes) + alignment padding = 64 bytes
     this.simParamsBuffer = this.device.createBuffer({
+      label: 'Simulation Params Buffer',
       size: 64,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
@@ -1106,17 +1122,20 @@ export class WebGPUGraphRenderer {
     const nodeBufferSize = this.nodeCount * 8 * 4;
     
     this.nodeBufferA = this.device.createBuffer({
+      label: 'Node Buffer A',
       size: nodeBufferSize,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
     });
     
     this.nodeBufferB = this.device.createBuffer({
+      label: 'Node Buffer B',
       size: nodeBufferSize,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
     });
     
     // Readback buffer for CPU-side picking
     this.nodeReadbackBuffer = this.device.createBuffer({
+      label: 'Node Readback Buffer',
       size: nodeBufferSize,
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
@@ -1148,6 +1167,7 @@ export class WebGPUGraphRenderer {
     }
     
     this.edgeBuffer = this.device.createBuffer({
+      label: 'Edge Buffer',
       size: edgeData.byteLength,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
@@ -1171,6 +1191,7 @@ export class WebGPUGraphRenderer {
     }
     
     this.edgeIndexBuffer = this.device.createBuffer({
+      label: 'Edge Index Buffer',
       size: edgeIndexData.byteLength,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
@@ -1211,6 +1232,19 @@ export class WebGPUGraphRenderer {
     // Initialize to all zeros (no selection)
     this.device.queue.writeBuffer(this.connectedNodesBuffer, 0, new Uint32Array(this.nodeCount));
     
+    // Create end states buffer (u32 per node: 1 = end state, 0 = not)
+    const endStateArray = new Uint32Array(this.nodeCount);
+    for (let i = 0; i < this.nodeCount; i++) {
+      const node = data.nodes[i];
+      endStateArray[i] = node?.is_end ? 1 : 0;
+    }
+
+    this.endStatesBuffer = this.device.createBuffer({
+      size: endStateArray.byteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    this.device.queue.writeBuffer(this.endStatesBuffer, 0, endStateArray);
+    
     // Create piece colors buffer (10 piece colors as vec4<f32>)
     const pieceColorData = new Float32Array(10 * 4);
     for (let i = 0; i < 10; i++) {
@@ -1222,6 +1256,7 @@ export class WebGPUGraphRenderer {
     }
     
     this.pieceColorsBuffer = this.device.createBuffer({
+      label: 'Piece Colors Buffer',
       size: pieceColorData.byteLength,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
@@ -1262,6 +1297,7 @@ export class WebGPUGraphRenderer {
   private createBindGroups() {
     // Compute bind groups (ping-pong)
     this.computeBindGroupA = this.device.createBindGroup({
+      label: 'Compute Bind Group A',
       layout: this.computePipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: { buffer: this.nodeBufferA } },
@@ -1272,6 +1308,7 @@ export class WebGPUGraphRenderer {
     });
     
     this.computeBindGroupB = this.device.createBindGroup({
+      label: 'Compute Bind Group B',
       layout: this.computePipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: { buffer: this.nodeBufferB } },
@@ -1283,6 +1320,7 @@ export class WebGPUGraphRenderer {
     
     // Node render bind groups (use layout from node pipeline)
     this.nodeRenderBindGroupA = this.device.createBindGroup({
+      label: 'Node Render Bind Group A',
       layout: this.nodeRenderPipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: { buffer: this.uniformBuffer } },
@@ -1291,10 +1329,12 @@ export class WebGPUGraphRenderer {
         { binding: 3, resource: { buffer: this.sphereVertexBuffer } },
         { binding: 4, resource: { buffer: this.connectedNodesBuffer } },
         { binding: 5, resource: { buffer: this.pieceColorsBuffer } },
+        { binding: 6, resource: { buffer: this.endStatesBuffer } },
       ],
     });
     
     this.nodeRenderBindGroupB = this.device.createBindGroup({
+      label: 'Node Render Bind Group B',
       layout: this.nodeRenderPipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: { buffer: this.uniformBuffer } },
@@ -1303,11 +1343,13 @@ export class WebGPUGraphRenderer {
         { binding: 3, resource: { buffer: this.sphereVertexBuffer } },
         { binding: 4, resource: { buffer: this.connectedNodesBuffer } },
         { binding: 5, resource: { buffer: this.pieceColorsBuffer } },
+        { binding: 6, resource: { buffer: this.endStatesBuffer } },
       ],
     });
     
     // Edge render bind groups (use layout from edge pipeline)
     this.edgeRenderBindGroupA = this.device.createBindGroup({
+      label: 'Edge Render Bind Group A',
       layout: this.edgeRenderPipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: { buffer: this.uniformBuffer } },
@@ -1317,6 +1359,7 @@ export class WebGPUGraphRenderer {
     });
     
     this.edgeRenderBindGroupB = this.device.createBindGroup({
+      label: 'Edge Render Bind Group B',
       layout: this.edgeRenderPipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: { buffer: this.uniformBuffer } },
@@ -1324,6 +1367,11 @@ export class WebGPUGraphRenderer {
         { binding: 2, resource: { buffer: this.edgeIndexBuffer } },
       ],
     });
+  }
+
+  // Allow toggling end-state highlight at runtime
+  setHighlightEndStates(enabled: boolean) {
+    this.highlightEndStates = enabled;
   }
   
   private updateUniforms() {
@@ -1354,8 +1402,8 @@ export class WebGPUGraphRenderer {
     // Write selected_node as int32
     const intView = new Int32Array(uniformData.buffer);
     intView[22] = this.selectedNodeIndex; // selected_node (-1 if none)
-    
-    uniformData[23] = 0; // padding
+  
+    intView[23] = this.highlightEndStates ? 1 : 0; // highlight_end_states
     
     this.device.queue.writeBuffer(this.uniformBuffer, 0, uniformData);
   }

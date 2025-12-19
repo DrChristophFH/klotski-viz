@@ -20,6 +20,7 @@ function App() {
     width: window.innerWidth,
     height: window.innerHeight,
   })
+  const [highlightEndStates, setHighlightEndStates] = useState(false)
   
   // Full Klotski data for puzzle visualization
   const [klotskiNodes, setKlotskiNodes] = useState<KlotskiNode[]>([])
@@ -84,15 +85,19 @@ function App() {
         })))
         setKlotskiPieces(data.pieces)
 
-        // Identify start and end states
+        // Identify start and end states (build local set first)
+        const localEndStates = new Set<string>()
+        let localStartId: string | null = null
         for (const node of data.nodes) {
           if (isStartState(node)) {
-            setStartStateId(node.id)
+            localStartId = node.id
           }
           if (isEndState(node)) {
-            setEndStates(prev => new Set(prev).add(node.id))
+            localEndStates.add(node.id)
           }
         }
+        if (localStartId) setStartStateId(localStartId)
+        setEndStates(localEndStates)
         
         // Transform data for WebGPU graph - include precomputed positions
         const nodes = data.nodes.map(node => ({
@@ -100,6 +105,8 @@ function App() {
           x: node.x,
           y: node.y,
           z: node.z,
+          // runtime flag for renderer / shader - 1 = end state, 0 = not
+          is_end: localEndStates.has(node.id) ? 1 : 0,
         }))
         
         const edges = data.edges.map(edge => ({
@@ -256,7 +263,7 @@ function App() {
           <div>Click node - Select state</div>
           <div>Middle mouse + drag - Orbit selected state</div>
         </div>
-        <div style={{ marginBottom: '15px' }}>
+        <div style={{ marginTop: '15px' }}>
           <button
             onClick={() => {
               if (graphRef && startStateId) {
@@ -278,6 +285,15 @@ function App() {
           >
             Go to Start State
           </button>
+        </div>
+        <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            id="highlight-end-states"
+            type="checkbox"
+            checked={highlightEndStates}
+            onChange={(e) => setHighlightEndStates(e.target.checked)}
+          />
+          <label htmlFor="highlight-end-states" style={{ fontSize: '13px' }}>Highlight End States (red)</label>
         </div>
         </>)}
       </div>
@@ -326,6 +342,7 @@ function App() {
         onNodeSelect={handleNodeSelect}
         selectedNodeId={selectedNodeId}
         pieceColorMapping={pieceColorMapping}
+        highlightEndStates={highlightEndStates}
         startPaused={true}
         ref={setGraphRef}
       />

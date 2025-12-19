@@ -2,6 +2,8 @@
 
 This repository contains a custom WebGPU based visualization of the statespace of the classic Klotski puzzle. It allows users to explore the various configurations and solutions of the puzzle interactively, providing insights into the complexity and structure of the statespace. With the help of WebGPU, the visualization is optimized for performance, enabling a smooth and responsive user experience.
 
+Check out the live demo [here 🚀](https://drchristophfh.github.io/klotski-viz/)
+
 The project is heavily inspired by the work of [2Swap](https://github.com/2swap) and his [Video on Klotski Statespace Visualization](https://www.youtube.com/watch?v=YGLNyHd2w10).
 
 ![Screenshot of Klotski Statespace Visualization](./res/screenshot_1.png)

@@ -4,9 +4,10 @@ Pack Klotski state space graph with precomputed positions into an optimized bina
 
 This script:
 1. Loads the original JSON state space and precomputed node positions
-2. Merges them into a compact binary format
-3. Applies quantization to reduce position precision
-4. Uses efficient compression (brotli for web delivery)
+2. Computes optimal parent pointers for pathfinding (BFS backward from goal)
+3. Merges them into a compact binary format
+4. Applies quantization to reduce position precision
+5. Uses efficient compression (brotli for web delivery)
 
 Binary format:
 - Header: magic bytes, version, counts
@@ -14,6 +15,7 @@ Binary format:
 - Nodes: indexed by position in file, positions array stored compactly
 - Node positions (x,y,z): quantized to 16-bit integers
 - Edges: source/target as node indices, piece_id as u8
+- Parent pointers: parent node index (u32) for A* pathfinding
 
 Output can be loaded efficiently in JavaScript with minimal parsing.
 """
@@ -23,7 +25,8 @@ import struct
 import zlib
 import argparse
 from pathlib import Path
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Any, Optional
+from collections import deque
 
 # Try to import brotli for better web compression
 try:
@@ -59,6 +62,64 @@ def dequantize_position(value: int) -> float:
     return value / POSITION_SCALE
 
 
+def is_end_state(node: Dict[str, Any]) -> bool:
+    """Check if a node is the goal state (main piece at positions [1, 3])"""
+    # Main piece (index 0) should be at board position (1, 3)
+    return node['positions'][0] == [1, 3]
+
+
+def compute_optimal_parents(
+    nodes: List[Dict[str, Any]],
+    edges: List[Dict[str, Any]],
+    node_id_to_idx: Dict[str, int]
+) -> Dict[int, int]:
+    """
+    Compute optimal parent pointer for each node using BFS backward from goal.
+    Returns: {node_index: parent_node_index}
+    
+    The parent pointer points to the neighbor that is one step closer to the goal.
+    At runtime, following parent pointers backward gives the shortest path to goal.
+    """
+    # Find goal node(s)
+    goal_indices = []
+    for idx, node in enumerate(nodes):
+        if is_end_state(node):
+            goal_indices.append(idx)
+    
+    if not goal_indices:
+        print("Warning: No goal state found!")
+        return {}
+    
+    print(f"Found {len(goal_indices)} goal state(s)")
+    
+    # Build adjacency list (bidirectional)
+    adjacency: Dict[int, List[int]] = {i: [] for i in range(len(nodes))}
+    for edge in edges:
+        src_idx = node_id_to_idx[edge['source']]
+        tgt_idx = node_id_to_idx[edge['target']]
+        adjacency[src_idx].append(tgt_idx)
+        adjacency[tgt_idx].append(src_idx)
+    
+    # BFS backward from all goal states
+    parents: Dict[int, int] = {}
+    visited = set(goal_indices)
+    queue = deque(goal_indices)
+    
+    while queue:
+        current = queue.popleft()
+        for neighbor in adjacency[current]:
+            if neighbor not in visited:
+                visited.add(neighbor)
+                parents[neighbor] = current
+                queue.append(neighbor)
+    
+    print(f"Computed parents for {len(parents)} nodes")
+    if len(parents) < len(nodes):
+        print(f"Warning: {len(nodes) - len(parents)} nodes unreachable from goal!")
+    
+    return parents
+
+
 def pack_graph(
     statespace_path: Path,
     positions_path: Path,
@@ -91,10 +152,13 @@ def pack_graph(
     
     print(f"Nodes: {len(nodes)}, Edges: {len(edges)}, Pieces: {len(pieces)}")
     
+    # Compute optimal parent pointers for pathfinding
+    optimal_parents = compute_optimal_parents(nodes, edges, node_id_to_idx)
+    
     # === Build binary data ===
     binary_parts: List[bytes] = []
     
-    # Header (20 bytes)
+    # Header (22 bytes)
     # - Magic: 4 bytes
     # - Version: 2 bytes (u16)
     # - Node count: 4 bytes (u32)
@@ -103,8 +167,9 @@ def pack_graph(
     # - Board width: 1 byte (u8)
     # - Board height: 1 byte (u8)
     # - Position scale: 2 bytes (u16, fixed point with 1 decimal)
+    # - Has parents: 1 byte (u8, boolean - 1 if parents computed, 0 otherwise)
     header = struct.pack(
-        '<4sHIIHBBH',
+        '<4sHIIHBBHB',
         MAGIC,
         VERSION,
         len(nodes),
@@ -112,7 +177,8 @@ def pack_graph(
         len(pieces),
         metadata['board_width'],
         metadata['board_height'],
-        int(POSITION_SCALE * 10)  # Store as 100 for 10.0
+        int(POSITION_SCALE * 10),  # Store as 100 for 10.0
+        1 if optimal_parents else 0  # Has parents flag
     )
     binary_parts.append(header)
     
@@ -173,6 +239,13 @@ def pack_graph(
         direction = direction_map.get(edge.get('direction', 'up'), 0)
         edges_data += struct.pack('<IIBB', src_idx, tgt_idx, piece_id, direction)
     binary_parts.append(edges_data)
+    
+    # Parent pointers (4 bytes per node: u32 parent index, or 0xFFFFFFFF if no parent/is goal)
+    parents_data = b''
+    for idx in range(len(nodes)):
+        parent_idx = optimal_parents.get(idx, 0xFFFFFFFF)
+        parents_data += struct.pack('<I', parent_idx)
+    binary_parts.append(parents_data)
     
     # Combine all parts
     raw_data = b''.join(binary_parts)

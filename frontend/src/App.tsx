@@ -42,6 +42,12 @@ function App() {
   // Show next move hint toggle
   const [showNextMoveHint, setShowNextMoveHint] = useState(false)
   
+  // Solve animation state
+  const [isSolving, setIsSolving] = useState(false)
+  const [solveSpeed, setSolveSpeed] = useState(1)
+  const [solvePath, setSolvePath] = useState<string[]>([])
+  const [solvePathIndex, setSolvePathIndex] = useState(0)
+  
   // Get the current selected node's data
   const selectedNode = selectedNodeId 
     ? klotskiNodes.find(n => n.id === selectedNodeId) || null
@@ -167,6 +173,55 @@ function App() {
   const handleColorMappingChange = useCallback((mapping: Map<number, number>) => {
     setPieceColorMapping(mapping)
   }, [])
+
+  // Handle solve button - reconstruct full path and start animation
+  const handleSolve = useCallback(() => {
+    if (!selectedNodeId || !klotskiNodes.length || !parentPointers.length || endStates.size === 0) {
+      return
+    }
+
+    try {
+      const path = reconstructPath(selectedNodeId, klotskiNodes, parentPointers)
+      setSolvePath(path)
+      setSolvePathIndex(0)
+      setIsSolving(true)
+    } catch (err) {
+      console.error('Error reconstructing path:', err)
+    }
+  }, [selectedNodeId, klotskiNodes, parentPointers, endStates])
+
+  // Handle stop solve
+  const handleStopSolve = useCallback(() => {
+    setIsSolving(false)
+    setSolvePath([])
+    setSolvePathIndex(0)
+  }, [])
+
+  // Auto-advance solve animation
+  useEffect(() => {
+    if (!isSolving || solvePath.length === 0 || solvePathIndex >= solvePath.length) {
+      return
+    }
+
+    // Calculate delay based on speed (1 = 1s per move, 0.5 = 2s, 2 = 0.5s)
+    const delayMs = (1000 * (1 / solveSpeed))
+    
+    const timer = setTimeout(() => {
+      const nextNodeId = solvePath[solvePathIndex + 1]
+      if (nextNodeId) {
+        setSelectedNodeId(nextNodeId)
+        if (graphRef) {
+          graphRef.selectNodeById(nextNodeId)
+        }
+        setSolvePathIndex(prev => prev + 1)
+      } else {
+        setIsSolving(false)
+      }
+    }, delayMs)
+
+    return () => clearTimeout(timer)
+  }, [isSolving, solvePathIndex, solvePath, solveSpeed, graphRef])
+
 
   if (loading) {
     return (
@@ -312,7 +367,7 @@ function App() {
         zIndex: 1000,
         background: 'rgba(0, 0, 0, 0.85)',
         borderRadius: '12px',
-        minWidth: '250px',
+        width: '300px',
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
         backdropFilter: 'blur(10px)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -361,6 +416,12 @@ function App() {
             nextMove={showNextMoveHint ? nextMove : null}
             onMove={handlePuzzleMove}
             onColorMappingChange={handleColorMappingChange}
+            onSolve={handleSolve}
+            onStopSolve={handleStopSolve}
+            isSolving={isSolving}
+            solveSpeed={solveSpeed}
+            onSolveSpeedChange={setSolveSpeed}
+            solveProgress={{ current: solvePathIndex, total: solvePath.length }}
           />
         )}
       </div>

@@ -22,6 +22,12 @@ interface KlotskiPuzzleProps {
   nextMove: PackedEdge | null;
   onMove?: (targetNodeId: string) => void;
   onColorMappingChange?: (mapping: Map<number, number>) => void;
+  onSolve?: () => void;
+  onStopSolve?: () => void;
+  isSolving?: boolean;
+  solveSpeed?: number;
+  onSolveSpeedChange?: (speed: number) => void;
+  solveProgress?: { current: number; total: number };
 }
 
 // Base piece colors - vibrant, distinct Material Design colors (matching WebGPUGraphRenderer)
@@ -193,6 +199,12 @@ export function KlotskiPuzzle({
   nextMove,
   onMove,
   onColorMappingChange,
+  onSolve,
+  onStopSolve,
+  isSolving = false,
+  solveSpeed = 1,
+  onSolveSpeedChange,
+  solveProgress,
 }: KlotskiPuzzleProps) {
   const { board_width, board_height } = metadata;
   
@@ -604,6 +616,110 @@ export function KlotskiPuzzle({
       }}>
         {availableMoves.length} possible moves • Drag pieces to move
       </div>
+
+      {/* Solve Controls */}
+      {!isSolving ? (
+        <button
+          onClick={onSolve}
+          style={{
+            width: '100%',
+            marginTop: '12px',
+            padding: '10px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            borderRadius: '6px',
+            border: 'none',
+            backgroundColor: '#2196F3',
+            color: 'white',
+            transition: 'background-color 0.2s ease',
+          }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1976D2'}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2196F3'}
+        >
+          Solve
+        </button>
+      ) : (
+        <>
+          <div style={{
+            marginTop: '12px',
+            padding: '8px 10px',
+            backgroundColor: 'rgba(33, 150, 243, 0.2)',
+            borderRadius: '6px',
+            border: '1px solid rgba(33, 150, 243, 0.5)',
+            alignSelf: 'center',
+            width: '90%',
+          }}>
+            <div style={{
+              color: '#2196F3',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              marginBottom: '6px',
+            }}>
+              Solving... {solveProgress ? `(${solveProgress.current} of ${solveProgress.total} moves)` : ''}
+            </div>
+            <div style={{
+              display: 'flex',
+              gap: '4px',
+              alignItems: 'center',
+              marginBottom: '6px',
+              minWidth: 0,
+            }}>
+              <label style={{
+                fontSize: '11px',
+                color: 'rgba(255, 255, 255, 0.7)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}>
+                Speed:
+              </label>
+              <input
+                type="range"
+                min="0.25"
+                max="4"
+                step="0.25"
+                value={solveSpeed}
+                onChange={(e) => onSolveSpeedChange?.(parseFloat(e.target.value))}
+                style={{
+                  flex: 1,
+                  height: '4px',
+                  cursor: 'pointer',
+                  minWidth: 0,
+                }}
+              />
+              <span style={{
+                fontSize: '11px',
+                color: 'rgba(255, 255, 255, 0.7)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}>
+                {(solveSpeed).toFixed(2)}x
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={onStopSolve}
+            style={{
+              width: '90%',
+              alignSelf: 'center',
+              marginTop: '8px',
+              padding: '8px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              borderRadius: '6px',
+              border: 'none',
+              backgroundColor: '#f44336',
+              color: 'white',
+              transition: 'background-color 0.2s ease',
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#d32f2f'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f44336'}
+          >
+            Stop
+          </button>
+        </>
+      )}
     </div>
   );
 }

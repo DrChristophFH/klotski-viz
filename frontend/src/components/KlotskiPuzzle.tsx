@@ -426,14 +426,14 @@ export function KlotskiPuzzle({
             boxShadow: isDragging 
               ? '0 0 20px rgba(255, 255, 255, 0.8)' 
               : isNextMove
-                ? '0 0 15px rgba(76, 175, 80, 0.9), inset 0 0 10px rgba(76, 175, 80, 0.4)'
+                ? '0 0 20px rgba(255, 255, 255, 0.8), inset 0 0 8px rgba(255, 255, 255, 0.2)'
                 : canMove 
                 ? '0 0 10px rgba(255, 255, 255, 0.5)' 
                 : '2px 2px 4px rgba(0,0,0,0.3)',
             border: isNextMove
-              ? '3px solid #4CAF50'
+              ? '2px solid rgba(255, 255, 255, 1.0)'
               : canMove 
-                ? '2px solid rgba(255,255,255,0.6)' 
+                ? '2px solid rgba(255, 255, 255, 0.5)' 
                 : 'none',
             transition: isDragging ? 'none' : 'transform 0.15s ease',
             userSelect: 'none',
@@ -450,7 +450,7 @@ export function KlotskiPuzzle({
               {directions.includes('up') && (
                 <div style={{
                   position: 'absolute',
-                  top: nextMoveDirection === 'up' ? -12 : -8,
+                  top: nextMoveDirection === 'up' ? -10 : -8,
                   left: '50%',
                   transform: 'translateX(-50%)',
                   width: 0,
@@ -458,14 +458,14 @@ export function KlotskiPuzzle({
                   borderLeft: nextMoveDirection === 'up' ? '8px solid transparent' : '6px solid transparent',
                   borderRight: nextMoveDirection === 'up' ? '8px solid transparent' : '6px solid transparent',
                   borderBottom: nextMoveDirection === 'up' 
-                    ? '12px solid #4CAF50' 
-                    : '8px solid rgba(255,255,255,0.8)'
+                    ? '8px solid rgba(255,255,255,1.0)' 
+                    : '6px solid rgba(255,255,255,0.5)',
                 }} />
               )}
               {directions.includes('down') && (
                 <div style={{
                   position: 'absolute',
-                  bottom: nextMoveDirection === 'down' ? -12 : -8,
+                  bottom: nextMoveDirection === 'down' ? -10 : -8,
                   left: '50%',
                   transform: 'translateX(-50%)',
                   width: 0,
@@ -473,14 +473,14 @@ export function KlotskiPuzzle({
                   borderLeft: nextMoveDirection === 'down' ? '8px solid transparent' : '6px solid transparent',
                   borderRight: nextMoveDirection === 'down' ? '8px solid transparent' : '6px solid transparent',
                   borderTop: nextMoveDirection === 'down' 
-                    ? '12px solid #4CAF50' 
-                    : '8px solid rgba(255,255,255,0.8)'
+                    ? '8px solid rgba(255,255,255,1.0)' 
+                    : '6px solid rgba(255,255,255,0.5)',
                 }} />
               )}
               {directions.includes('left') && (
                 <div style={{
                   position: 'absolute',
-                  left: nextMoveDirection === 'left' ? -12 : -8,
+                  left: nextMoveDirection === 'left' ? -10 : -8,
                   top: '50%',
                   transform: 'translateY(-50%)',
                   width: 0,
@@ -488,14 +488,14 @@ export function KlotskiPuzzle({
                   borderTop: nextMoveDirection === 'left' ? '8px solid transparent' : '6px solid transparent',
                   borderBottom: nextMoveDirection === 'left' ? '8px solid transparent' : '6px solid transparent',
                   borderRight: nextMoveDirection === 'left' 
-                    ? '12px solid #4CAF50' 
-                    : '8px solid rgba(255,255,255,0.8)'
+                    ? '8px solid rgba(255,255,255,1.0)' 
+                    : '6px solid rgba(255,255,255,0.5)',
                 }} />
               )}
               {directions.includes('right') && (
                 <div style={{
                   position: 'absolute',
-                  right: nextMoveDirection === 'right' ? -12 : -8,
+                  right: nextMoveDirection === 'right' ? -10 : -8,
                   top: '50%',
                   transform: 'translateY(-50%)',
                   width: 0,
@@ -503,8 +503,8 @@ export function KlotskiPuzzle({
                   borderTop: nextMoveDirection === 'right' ? '8px solid transparent' : '6px solid transparent',
                   borderBottom: nextMoveDirection === 'right' ? '8px solid transparent' : '6px solid transparent',
                   borderLeft: nextMoveDirection === 'right' 
-                    ? '12px solid #4CAF50' 
-                    : '8px solid rgba(255,255,255,0.8)'
+                    ? '8px solid rgba(255,255,255,1.0)' 
+                    : '6px solid rgba(255,255,255,0.5)',
                 }} />
               )}
             </>

@@ -51,18 +51,19 @@ export interface PackedGraphData {
  * Load and decompress a packed Klotski graph file
  */
 export async function loadPackedGraph(url: string): Promise<PackedGraphData> {
-  const response = await fetch(url);
+  const fullUrl = import.meta.env.BASE_URL + url;
+  const response = await fetch(fullUrl);
   if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status}`);
+    throw new Error(`Failed to fetch ${fullUrl}: ${response.status}`);
   }
   
   let data: ArrayBuffer;
   
-  if (url.endsWith('.br')) {
+  if (fullUrl.endsWith('.br')) {
     // Brotli - if server sends with Content-Encoding: br, browser auto-decompresses
     // Otherwise we need a JS decompressor. For now assume server handles it.
     data = await response.arrayBuffer();
-  } else if (url.endsWith('.gz')) {
+  } else if (fullUrl.endsWith('.gz')) {
     // Gzip - use DecompressionStream
     const compressed = await response.arrayBuffer();
     const ds = new DecompressionStream('gzip');

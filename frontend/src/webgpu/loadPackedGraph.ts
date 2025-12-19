@@ -10,6 +10,8 @@
  * - Edges: 9 bytes (source u32, target u32, piece_id u8) per edge
  */
 
+import type { KlotskiNode } from "../types/klotski";
+
 export interface PackedGraphMetadata {
   nodeCount: number;
   edgeCount: number;
@@ -45,6 +47,7 @@ export interface PackedGraphData {
   pieces: PackedPiece[];
   nodes: PackedNode[];
   edges: PackedEdge[];
+  parentPointers: (number | null)[];  // null = goal state, otherwise parent node index
 }
 
 /**
@@ -125,6 +128,7 @@ function parsePackedGraph(buffer: ArrayBuffer): PackedGraphData {
   const boardHeight = view.getUint8(offset); offset += 1;
   const positionScaleRaw = view.getUint16(offset, true); offset += 2;
   const positionScale = positionScaleRaw / 10;
+  const hasParents = view.getUint8(offset); offset += 1;
   
   console.log(`Loading packed graph: ${nodeCount} nodes, ${edgeCount} edges, ${pieceCount} pieces`);
   
@@ -198,6 +202,21 @@ function parsePackedGraph(buffer: ArrayBuffer): PackedGraphData {
     offset += 10;
   }
   
+  // Read parent pointers (4 bytes per node: u32, where 0xFFFFFFFF means goal/no parent)
+  const parentPointers: (number | null)[] = [];
+  if (hasParents) {
+    for (let i = 0; i < nodeCount; i++) {
+      const parentIdx = view.getUint32(offset, true);
+      offset += 4;
+      parentPointers.push(parentIdx === 0xFFFFFFFF ? null : parentIdx);
+    }
+  } else {
+    // No parent data in this file
+    for (let i = 0; i < nodeCount; i++) {
+      parentPointers.push(null);
+    }
+  }
+  
   return {
     metadata: {
       nodeCount,
@@ -210,7 +229,65 @@ function parsePackedGraph(buffer: ArrayBuffer): PackedGraphData {
     pieces,
     nodes,
     edges,
+    parentPointers,
   };
+}
+
+/**
+ * Reconstruct the shortest path from a given node to the goal by following parent pointers.
+ * Returns array of node IDs in order from the given node to goal.
+ */
+export function reconstructPath(
+  startNodeId: string,
+  nodes: KlotskiNode[],
+  parentPointers: (number | null)[],
+): string[] {
+  const nodeIdToIdx = new Map<string, number>();
+  nodes.forEach((node, idx) => {
+    nodeIdToIdx.set(node.id, idx);
+  });
+
+  const startIdx = nodeIdToIdx.get(startNodeId);
+  if (startIdx === undefined) {
+    console.warn(`Node ${startNodeId} not found`);
+    return [];
+  }
+
+  const path: string[] = [];
+  let currentIdx: number | null = startIdx;
+
+  while (currentIdx !== null) {
+    path.push(nodes[currentIdx].id);
+    currentIdx = parentPointers[currentIdx];
+  }
+
+  return path;
+}
+
+/**
+ * Get the edges that make up the path between two nodes in the path sequence.
+ */
+export function getPathEdges(
+  path: string[],
+  edges: PackedEdge[],
+): PackedEdge[] {
+  //const pathSet = new Set(path);
+  const pathEdges: PackedEdge[] = [];
+
+  for (let i = 0; i < path.length - 1; i++) {
+    const fromId = path[i];
+    const toId = path[i + 1];
+
+    const edge = edges.find(
+      (e) => (e.source === fromId && e.target === toId) || (e.source === toId && e.target === fromId)
+    );
+
+    if (edge) {
+      pathEdges.push(edge);
+    }
+  }
+
+  return pathEdges;
 }
 
 /**

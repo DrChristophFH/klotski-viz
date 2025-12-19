@@ -295,10 +295,10 @@ def main():
     
     if choice == "1":
         initial_state = create_classic_klotski()
-        output_file = "klotski_classic_statespace.json"
+        output_file = "data/klotski_classic_statespace.json"
     else:
         initial_state = create_simple_klotski()
-        output_file = "klotski_simple_statespace.json"
+        output_file = "data/klotski_simple_statespace.json"
     
     print("\nInitial puzzle state:")
     print(initial_state.visualize())

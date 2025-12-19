@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import WebGPUGraph from './webgpu/WebGPUGraph'
 import type { WebGPUGraphRef } from './webgpu/WebGPUGraph'
 import KlotskiPuzzle from './components/KlotskiPuzzle'
 import type { KlotskiNode, KlotskiEdge, KlotskiPiece, KlotskiMetadata } from './types/klotski'
-import { isEndState, isStartState, loadPackedGraph } from './webgpu/loadPackedGraph'
+import { getPathEdges, isEndState, isStartState, loadPackedGraph, reconstructPath } from './webgpu/loadPackedGraph'
 
 interface WebGPUGraphData {
   nodes: { id: string; x?: number; y?: number; z?: number }[];
@@ -27,6 +27,7 @@ function App() {
   const [klotskiPieces, setKlotskiPieces] = useState<KlotskiPiece[]>([])
   const [endStates, setEndStates] = useState<Set<string>>(new Set())
   const [startStateId, setStartStateId] = useState<string | null>(null)
+  const [parentPointers, setParentPointers] = useState<(number | null)[]>([])
   
   // Selected node state
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
@@ -37,6 +38,9 @@ function App() {
   
   // Collapsible info panel state
   const [infoExpanded, setInfoExpanded] = useState(false)
+  
+  // Show next move hint toggle
+  const [showNextMoveHint, setShowNextMoveHint] = useState(false)
   
   // Get the current selected node's data
   const selectedNode = selectedNodeId 
@@ -83,6 +87,7 @@ function App() {
           direction: edge.direction,
         })))
         setKlotskiPieces(data.pieces)
+        setParentPointers(data.parentPointers)
 
         // Identify start and end states
         for (const node of data.nodes) {
@@ -123,6 +128,23 @@ function App() {
     console.log('Start state ID:', startStateId)
     console.log('End state IDs:', Array.from(endStates))
   }, [startStateId, endStates])
+  
+  // Compute next move based on selected node
+  const nextMove = useMemo(() => {
+    if (!selectedNodeId || !klotskiNodes.length || !parentPointers.length) {
+      return null
+    }
+    
+    try {
+      const path = reconstructPath(selectedNodeId, klotskiNodes, parentPointers)
+      const pathEdges = getPathEdges(path, klotskiEdges)
+      
+      return pathEdges.length > 0 ? pathEdges[0] : null
+    } catch (err) {
+      console.error('Error computing path:', err)
+      return null
+    }
+  }, [selectedNodeId, klotskiNodes, klotskiEdges, parentPointers])
   
   // Handle node selection from graph
   const handleNodeSelect = useCallback((nodeId: string | null) => {
@@ -298,11 +320,37 @@ function App() {
         <div style={{
           padding: '10px 15px',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          color: 'white',
-          fontWeight: 'bold',
-          fontSize: '14px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
         }}>
-          Current State
+          <div style={{
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: '14px',
+          }}>
+            Current State
+          </div>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            color: 'rgba(255, 255, 255, 0.7)',
+          }}>
+            <input
+              type="checkbox"
+              checked={showNextMoveHint}
+              onChange={(e) => setShowNextMoveHint(e.target.checked)}
+              style={{
+                cursor: 'pointer',
+                width: '16px',
+                height: '16px',
+              }}
+            />
+            Show hints
+          </label>
         </div>
         {metadata && (
           <KlotskiPuzzle
@@ -310,6 +358,7 @@ function App() {
             pieces={klotskiPieces}
             currentNode={selectedNode}
             edges={klotskiEdges}
+            nextMove={showNextMoveHint ? nextMove : null}
             onMove={handlePuzzleMove}
             onColorMappingChange={handleColorMappingChange}
           />

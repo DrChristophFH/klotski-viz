@@ -7,16 +7,19 @@
  * Features:
  * - Color identity preservation across state changes  
  * - Drag-to-move functionality for directional piece movement
+ * - Visual indicators for movable pieces and next recommended move
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { KlotskiPiece, KlotskiNode, KlotskiEdge, KlotskiMetadata } from '../types/klotski';
+import type { PackedEdge } from '../webgpu/loadPackedGraph';
 
 interface KlotskiPuzzleProps {
   metadata: KlotskiMetadata;
   pieces: KlotskiPiece[];
   currentNode: KlotskiNode | null;
   edges: KlotskiEdge[];
+  nextMove: PackedEdge | null;
   onMove?: (targetNodeId: string) => void;
   onColorMappingChange?: (mapping: Map<number, number>) => void;
 }
@@ -187,6 +190,7 @@ export function KlotskiPuzzle({
   pieces,
   currentNode,
   edges,
+  nextMove,
   onMove,
   onColorMappingChange,
 }: KlotskiPuzzleProps) {
@@ -396,6 +400,8 @@ export function KlotskiPuzzle({
       const dragOffset = getDragOffset(pieceIdx);
       const isDragging = dragState?.pieceIdx === pieceIdx;
       const directions = getAvailableDirections(pieceIdx);
+      const isNextMove = nextMove?.piece_id === pieceIdx;
+      const nextMoveDirection = isNextMove ? nextMove?.direction : null;
       
       return (
         <div
@@ -419,10 +425,16 @@ export function KlotskiPuzzle({
             fontSize: pieceIdx === 0 ? '24px' : '16px',
             boxShadow: isDragging 
               ? '0 0 20px rgba(255, 255, 255, 0.8)' 
-              : canMove 
+              : isNextMove
+                ? '0 0 15px rgba(76, 175, 80, 0.9), inset 0 0 10px rgba(76, 175, 80, 0.4)'
+                : canMove 
                 ? '0 0 10px rgba(255, 255, 255, 0.5)' 
                 : '2px 2px 4px rgba(0,0,0,0.3)',
-            border: canMove ? '2px solid rgba(255,255,255,0.6)' : 'none',
+            border: isNextMove
+              ? '3px solid #4CAF50'
+              : canMove 
+                ? '2px solid rgba(255,255,255,0.6)' 
+                : 'none',
             transition: isDragging ? 'none' : 'transform 0.15s ease',
             userSelect: 'none',
             zIndex: isDragging ? 100 : 1,
@@ -438,53 +450,61 @@ export function KlotskiPuzzle({
               {directions.includes('up') && (
                 <div style={{
                   position: 'absolute',
-                  top: -8,
+                  top: nextMoveDirection === 'up' ? -12 : -8,
                   left: '50%',
                   transform: 'translateX(-50%)',
                   width: 0,
                   height: 0,
-                  borderLeft: '6px solid transparent',
-                  borderRight: '6px solid transparent',
-                  borderBottom: '8px solid rgba(255,255,255,0.8)',
+                  borderLeft: nextMoveDirection === 'up' ? '8px solid transparent' : '6px solid transparent',
+                  borderRight: nextMoveDirection === 'up' ? '8px solid transparent' : '6px solid transparent',
+                  borderBottom: nextMoveDirection === 'up' 
+                    ? '12px solid #4CAF50' 
+                    : '8px solid rgba(255,255,255,0.8)'
                 }} />
               )}
               {directions.includes('down') && (
                 <div style={{
                   position: 'absolute',
-                  bottom: -8,
+                  bottom: nextMoveDirection === 'down' ? -12 : -8,
                   left: '50%',
                   transform: 'translateX(-50%)',
                   width: 0,
                   height: 0,
-                  borderLeft: '6px solid transparent',
-                  borderRight: '6px solid transparent',
-                  borderTop: '8px solid rgba(255,255,255,0.8)',
+                  borderLeft: nextMoveDirection === 'down' ? '8px solid transparent' : '6px solid transparent',
+                  borderRight: nextMoveDirection === 'down' ? '8px solid transparent' : '6px solid transparent',
+                  borderTop: nextMoveDirection === 'down' 
+                    ? '12px solid #4CAF50' 
+                    : '8px solid rgba(255,255,255,0.8)'
                 }} />
               )}
               {directions.includes('left') && (
                 <div style={{
                   position: 'absolute',
-                  left: -8,
+                  left: nextMoveDirection === 'left' ? -12 : -8,
                   top: '50%',
                   transform: 'translateY(-50%)',
                   width: 0,
                   height: 0,
-                  borderTop: '6px solid transparent',
-                  borderBottom: '6px solid transparent',
-                  borderRight: '8px solid rgba(255,255,255,0.8)',
+                  borderTop: nextMoveDirection === 'left' ? '8px solid transparent' : '6px solid transparent',
+                  borderBottom: nextMoveDirection === 'left' ? '8px solid transparent' : '6px solid transparent',
+                  borderRight: nextMoveDirection === 'left' 
+                    ? '12px solid #4CAF50' 
+                    : '8px solid rgba(255,255,255,0.8)'
                 }} />
               )}
               {directions.includes('right') && (
                 <div style={{
                   position: 'absolute',
-                  right: -8,
+                  right: nextMoveDirection === 'right' ? -12 : -8,
                   top: '50%',
                   transform: 'translateY(-50%)',
                   width: 0,
                   height: 0,
-                  borderTop: '6px solid transparent',
-                  borderBottom: '6px solid transparent',
-                  borderLeft: '8px solid rgba(255,255,255,0.8)',
+                  borderTop: nextMoveDirection === 'right' ? '8px solid transparent' : '6px solid transparent',
+                  borderBottom: nextMoveDirection === 'right' ? '8px solid transparent' : '6px solid transparent',
+                  borderLeft: nextMoveDirection === 'right' 
+                    ? '12px solid #4CAF50' 
+                    : '8px solid rgba(255,255,255,0.8)'
                 }} />
               )}
             </>
@@ -492,7 +512,7 @@ export function KlotskiPuzzle({
         </div>
       );
     });
-  }, [currentNode, pieces, getMovesForPiece, getDragOffset, dragState, getAvailableDirections, handleDragStart, getPieceColor]);
+  }, [currentNode, pieces, getMovesForPiece, getDragOffset, dragState, getAvailableDirections, handleDragStart, getPieceColor, nextMove]);
   
   if (!currentNode) {
     return (

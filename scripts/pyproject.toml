@@ -1,0 +1,12 @@
+[project]
+name = "bdv"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "brotli>=1.2.0",
+]
+
+[tool.uv.workspace]
+members = [
+    "vis/project",
+]

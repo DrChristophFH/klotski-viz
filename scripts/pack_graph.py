@@ -215,7 +215,7 @@ def pack_graph(
     }
     
     total_json = stats['original_json_size'] + stats['positions_json_size']
-    print(f"\nOriginal JSON sizes:")
+    print("\nOriginal JSON sizes:")
     print(f"  State space: {stats['original_json_size']:,} bytes")
     print(f"  Positions:   {stats['positions_json_size']:,} bytes")
     print(f"  Total:       {total_json:,} bytes")
@@ -416,19 +416,19 @@ def main():
     parser.add_argument(
         '--statespace',
         type=Path,
-        default=Path('vite-project/public/klotski_classic_statespace.json'),
+        default=Path('klotski_classic_statespace.json'),
         help='Path to the state space JSON file'
     )
     parser.add_argument(
         '--positions',
         type=Path,
-        default=Path('node_positions.json'),
+        default=Path('../data/node_positions.json'),
         help='Path to the node positions JSON file'
     )
     parser.add_argument(
         '--output',
         type=Path,
-        default=Path('vite-project/public/klotski_packed'),
+        default=Path('../frontend/public/klotski_packed'),
         help='Output path (without extension)'
     )
     parser.add_argument(

@@ -10,7 +10,7 @@
  * - Edges: 9 bytes (source u32, target u32, piece_id u8) per edge
  */
 
-import type { KlotskiNode } from "../types/klotski";
+import type { KlotskiNode } from "../../types/klotski";
 
 export interface PackedGraphMetadata {
   nodeCount: number;

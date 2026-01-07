@@ -39,7 +39,7 @@ function App() {
   const [klotskiNodes, setKlotskiNodes] = useState<KlotskiNode[]>([]);
   const [klotskiEdges, setKlotskiEdges] = useState<KlotskiEdge[]>([]);
   const [klotskiPieces, setKlotskiPieces] = useState<KlotskiPiece[]>([]);
-  const [endStates, setEndStates] = useState<Set<string>>(new Set());
+  const [, setEndStates] = useState<Set<string>>(new Set());
   const [startStateId, setStartStateId] = useState<string | null>(null);
 
   // Selected node state

@@ -158,9 +158,15 @@ function App() {
       return;
     }
     
-    const path = reconstructPath(selectedNodeId, klotskiNodes, parentPointers)
-    graphRef.setSolutionPath(path)
-  }, [selectedNodeId])
+    // Only show solution path if hints are enabled
+    if (showNextMoveHint) {
+      const path = reconstructPath(selectedNodeId, klotskiNodes, parentPointers)
+      graphRef.setSolutionPath(path)
+    } else {
+      // Clear the solution path when hints are disabled
+      graphRef.setSolutionPath([])
+    }
+  }, [selectedNodeId, showNextMoveHint])
   
   // Handle node selection from graph
   const handleNodeSelect = useCallback((nodeId: string | null) => {

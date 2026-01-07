@@ -288,7 +288,7 @@ def pack_graph(
     }
     
     total_json = stats['original_json_size'] + stats['positions_json_size']
-    print(f"\nOriginal JSON sizes:")
+    print("\nOriginal JSON sizes:")
     print(f"  State space: {stats['original_json_size']:,} bytes")
     print(f"  Positions:   {stats['positions_json_size']:,} bytes")
     print(f"  Total:       {total_json:,} bytes")

@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { KlotskiPiece, KlotskiNode, KlotskiEdge, KlotskiMetadata } from '../types/klotski';
-import type { PackedEdge } from '../webgpu/loadPackedGraph';
+import type { PackedEdge } from '../features/webgpu/loadPackedGraph';
 
 interface KlotskiPuzzleProps {
   metadata: KlotskiMetadata;
@@ -656,7 +656,7 @@ export function KlotskiPuzzle({
               fontWeight: 'bold',
               marginBottom: '6px',
             }}>
-              Solving... {solveProgress ? `(${solveProgress.current} of ${solveProgress.total} moves)` : ''}
+              Solving... {solveProgress ? `(${solveProgress.total - solveProgress.current} moves remaining)` : ''}
             </div>
             <div style={{
               display: 'flex',

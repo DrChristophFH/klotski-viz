@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import WebGPUGraph from "./webgpu/WebGPUGraph";
-import type { WebGPUGraphRef } from "./webgpu/WebGPUGraph";
+import WebGPUGraph from "./features/webgpu/WebGPUGraph";
+import type { WebGPUGraphRef } from "./features/webgpu/WebGPUGraph";
 import KlotskiPuzzle from "./components/KlotskiPuzzle";
 import type {
   KlotskiNode,
@@ -12,7 +12,7 @@ import {
   isEndState,
   isStartState,
   loadPackedGraph,
-} from "./webgpu/loadPackedGraph";
+} from "./features/webgpu/loadPackedGraph";
 import { WebGPUErrorMsg } from "./components/WebGPUErrorMsg";
 import { StandardErrorMsg } from "./components/StandardErrorMsg";
 import { LoadingMsg } from "./components/LoadingMsg";
@@ -50,7 +50,6 @@ function App() {
   const [pieceColorMapping, setPieceColorMapping] = useState<
     Map<number, number>
   >(new Map());
-
 
   // Get the current selected node's data
   const selectedNode = selectedNodeId

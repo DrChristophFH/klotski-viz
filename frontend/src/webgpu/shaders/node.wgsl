@@ -83,6 +83,11 @@ fn fs_main(input: NodeVertexOutput) -> @location(0) vec4<f32> {
     // Highlight selected node (golden glow)
     if (input.is_selected == 1u || input.connection_state == 1u) {
         final_color = vec3<f32>(1.0, 0.85, 0.2);
+    } else if (input.connection_state >= 1000u) {
+        // Path gradient coloring: green to blue based on distance to solution
+        let gradient = f32(input.connection_state - 1000u) / 1000.0;  // 0.0 (start) to 1.0 (solution)
+        // Green (0.0, 1.0, 0.0) to Blue (0.0, 0.0, 1.0)
+        final_color = vec3<f32>(0.0, 1.0 - gradient, gradient);
     } else if (input.connection_state >= 2u) {
         // Connected nodes get colored by the piece that moves
         let piece_id = input.connection_state - 2u;

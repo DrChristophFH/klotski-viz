@@ -22,6 +22,7 @@ export interface WebGPUGraphProps {
 export interface WebGPUGraphRef {
   selectNodeById: (nodeId: string) => void;
   setPieceColorMapping: (mapping: Map<number, number>) => void;
+  setSolutionPath: (path: string[]) => void;
 }
 
 export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(({
@@ -53,6 +54,9 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(({
     },
     setPieceColorMapping: (mapping: Map<number, number>) => {
       rendererRef.current?.setPieceColorMapping(mapping);
+    },
+    setSolutionPath: (path: string[]) => {
+      rendererRef.current?.setSolutionPath(path);
     },
   }), []);
   

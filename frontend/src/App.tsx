@@ -152,6 +152,16 @@ function App() {
     }
   }, [selectedNodeId, klotskiNodes, klotskiEdges, parentPointers])
   
+  // Compute and sync the full solution path to graph whenever node is selected
+  useEffect(() => {
+    if (!selectedNodeId || !graphRef) {
+      return;
+    }
+    
+    const path = reconstructPath(selectedNodeId, klotskiNodes, parentPointers)
+    graphRef.setSolutionPath(path)
+  }, [selectedNodeId])
+  
   // Handle node selection from graph
   const handleNodeSelect = useCallback((nodeId: string | null) => {
     console.log('Selected node:', nodeId)

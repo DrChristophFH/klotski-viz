@@ -149,6 +149,9 @@ export class WebGPUGraphRenderer {
   // Node id to index mapping
   private nodeIdToIndex: Map<string, number> = new Map();
   
+  // Solution path tracking
+  private solutionPath: string[] = [];
+  
   // Store edge indices for connectivity queries
   private edgeIndices: Uint32Array | null = null;
   
@@ -640,6 +643,18 @@ export class WebGPUGraphRenderer {
     const connectedData = new Uint32Array(this.nodeCount);
     
     if (selectedIndex >= 0) {
+      // Color grade the path
+      for (let i = 0; i < this.solutionPath.length; i++) {
+        const nodeId = this.solutionPath[i];
+        const nodeIdx = this.nodeIdToIndex.get(nodeId);
+        if (nodeIdx !== undefined) {
+          // Distance ratio: 0 at start, 1 at solution
+          const distanceRatio = i / (this.solutionPath.length - 1 || 1);
+          // Encode with special marker 1000+ for path gradient
+          connectedData[nodeIdx] = 1000 + Math.floor(distanceRatio * 1000);
+        }
+      }
+      
       // Mark the selected node itself (special value 1)
       connectedData[selectedIndex] = 1;
       
@@ -674,6 +689,18 @@ export class WebGPUGraphRenderer {
     this.device.queue.writeBuffer(this.connectedNodesBuffer, 0, connectedData);
   }
   
+  /**
+   * Set the solution path from the current selected node to the solution.
+   * Used to highlight/color nodes along the optimal solution path.
+   */
+  setSolutionPath(path: string[]) {
+    this.solutionPath = path;
+    // Re-update connected nodes to apply path highlighting
+    if (this.selectedNodeIndex >= 0) {
+      this.updateConnectedNodes(this.selectedNodeIndex);
+    }
+  }
+
   /**
    * Set the piece color mapping to sync colors with KlotskiPuzzle.
    * Maps piece_id (structural index) to color_index (visual color).

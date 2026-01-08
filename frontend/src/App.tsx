@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import WebGPUGraph from "./features/webgpu/WebGPUGraph";
 import type { WebGPUGraphRef } from "./features/webgpu/WebGPUGraph";
-import KlotskiPuzzle from "./components/KlotskiPuzzle";
 import type {
   KlotskiNode,
   KlotskiEdge,
@@ -18,6 +17,7 @@ import { StandardErrorMsg } from "./components/StandardErrorMsg";
 import { LoadingMsg } from "./components/LoadingMsg";
 import { InfoPanel } from "./features/info/InfoPanel";
 import { GitHubLink } from "./components/GitHubLink";
+import KlotskiPuzzle from "./components/klotskiPuzzle/KlotskiPuzzle";
 
 interface WebGPUGraphData {
   nodes: { id: string; x?: number; y?: number; z?: number }[];

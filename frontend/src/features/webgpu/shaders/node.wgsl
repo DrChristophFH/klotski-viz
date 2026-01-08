@@ -79,6 +79,7 @@ fn vs_main(
 fn fs_main(input: NodeVertexOutput) -> @location(0) vec4<f32> {
     // Use the color directly without lighting
     var final_color = input.color;
+    var alpha = 1.0;
     
     // Highlight selected node (golden glow)
     if (input.is_selected == 1u || input.connection_state == 1u) {
@@ -96,7 +97,8 @@ fn fs_main(input: NodeVertexOutput) -> @location(0) vec4<f32> {
         // grayscale non-connected nodes when something is selected
         let gray = dot(final_color, vec3<f32>(0.299, 0.587, 0.114));
         final_color = vec3<f32>(gray);
+        alpha = 0.8;
     }
     
-    return vec4<f32>(final_color, 1.0);
+    return vec4<f32>(final_color, alpha);
 }

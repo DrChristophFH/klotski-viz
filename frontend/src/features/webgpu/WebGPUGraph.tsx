@@ -61,7 +61,7 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
     const [layoutExpanded, setLayoutExpanded] = useState(false);
 
     // Expose methods to parent via ref
-    /*useImperativeHandle(
+    useImperativeHandle(
       ref,
       () => ({
         selectNodeById: (nodeId: string) => {
@@ -70,9 +70,12 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
         setPieceColorMapping: (mapping: Map<number, number>) => {
           rendererRef.current?.setPieceColorMapping(mapping);
         },
+        setSolutionPath: (path: string[]) => {
+          rendererRef.current?.setSolutionPath(path);
+        },
       }),
       []
-    );*/
+    );
 
     // Set up node selection callback
     useEffect(() => {

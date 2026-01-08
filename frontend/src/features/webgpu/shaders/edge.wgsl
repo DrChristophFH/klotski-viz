@@ -18,11 +18,13 @@ struct Node {
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var<storage, read> nodes: array<Node>;
 @group(0) @binding(2) var<storage, read> edge_indices: array<vec2<u32>>;
+@group(0) @binding(3) var<storage, read> edge_colors: array<vec4<f32>>;
 
 struct EdgeVertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) alpha: f32,
     @location(1) @interpolate(flat) is_connected: u32,
+    @location(2) color: vec3<f32>,
 }
 
 @vertex
@@ -52,16 +54,13 @@ fn vs_main(
     output.position = uniforms.view_proj * vec4<f32>(pos, 1.0);
     output.alpha = select(0.3, 1.0, is_connected == 1u); // Dim non-connected edges when something is selected
     output.is_connected = is_connected;
+    output.color = edge_colors[instance_idx].rgb;
     
     return output;
 }
 
 @fragment
 fn fs_main(input: EdgeVertexOutput) -> @location(0) vec4<f32> {
-    if (input.is_connected == 1u) {
-        // Highlighted edge - cyan/bright
-        return vec4<f32>(0.2, 1.0, 1.0, input.alpha);
-    }
-    // Normal edge - gray
-    return vec4<f32>(0.8, 0.8, 0.8, input.alpha);
+    return vec4<f32>(input.color, input.alpha);
 }
+

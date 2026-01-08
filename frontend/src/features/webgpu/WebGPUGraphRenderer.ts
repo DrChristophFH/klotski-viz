@@ -22,6 +22,7 @@ export interface GraphEdge {
   source: string;
   target: string;
   piece_id?: number;  // For Klotski: which piece moves for this transition
+  rgba?: [number, number, number, number];  // RGBA color, uses gray if undefined
 }
 
 export interface GraphData {
@@ -60,6 +61,7 @@ export class WebGPUGraphRenderer {
   private nodeBufferB!: GPUBuffer;
   private edgeBuffer!: GPUBuffer;
   private edgeIndexBuffer!: GPUBuffer;
+  private edgeColorBuffer!: GPUBuffer;
   private uniformBuffer!: GPUBuffer;
   private simParamsBuffer!: GPUBuffer;
   private nodeColorBuffer!: GPUBuffer;
@@ -643,11 +645,12 @@ export class WebGPUGraphRenderer {
     const connectedData = new Uint32Array(this.nodeCount);
     
     if (selectedIndex >= 0) {
-      // Color grade the path
+      // Color grade the path nodes
       for (let i = 0; i < this.solutionPath.length; i++) {
         const nodeId = this.solutionPath[i];
         const nodeIdx = this.nodeIdToIndex.get(nodeId);
         if (nodeIdx !== undefined) {
+          console.warn(`Path node ${nodeId} at index ${nodeIdx}`);
           // Distance ratio: 0 at start, 1 at solution
           const distanceRatio = i / (this.solutionPath.length - 1 || 1);
           // Encode with special marker 1000+ for path gradient
@@ -683,10 +686,48 @@ export class WebGPUGraphRenderer {
       for (const [nodeIdx, colorIdx] of connectedNodesToPieces.entries()) {
         connectedData[nodeIdx] = colorIdx + 2;
       }
+
+      // Upload to GPU
+      this.device.queue.writeBuffer(this.connectedNodesBuffer, 0, connectedData);
+
+      // Color the path edges
+      const edgeColorData = new Float32Array(this.edgeCount * 4);
+      
+      // Initialize all edges to gray
+      for (let i = 0; i < this.edgeCount; i++) {
+        edgeColorData[i * 4 + 0] = 0.8;
+        edgeColorData[i * 4 + 1] = 0.8;
+        edgeColorData[i * 4 + 2] = 0.8;
+        edgeColorData[i * 4 + 3] = 0.8;
+      }
+
+      // Color path edges
+      for (let i = 1; i < this.solutionPath.length; i++) {
+        const fromNodeId = this.solutionPath[i - 1];
+        const toNodeId = this.solutionPath[i];
+        const fromIdx = this.nodeIdToIndex.get(fromNodeId);
+        const toIdx = this.nodeIdToIndex.get(toNodeId);
+        
+        if (fromIdx !== undefined && toIdx !== undefined) {
+          // Find the edge connecting fromIdx to toIdx and color it
+          for (let j = 0; j < this.edgeCount; j++) {
+            const source = this.edgeIndices![j * 2];
+            const target = this.edgeIndices![j * 2 + 1];
+            
+            // color like target node
+            if ((source === fromIdx && target === toIdx) || (source === toIdx && target === fromIdx)) {
+              edgeColorData[j * 4 + 0] = 0.0;
+              edgeColorData[j * 4 + 1] = 1.0;
+              edgeColorData[j * 4 + 2] = 0.0;
+              edgeColorData[j * 4 + 3] = 1.0;
+              break;
+            }
+          }
+        }
+      }
+
+      this.device.queue.writeBuffer(this.edgeColorBuffer, 0, edgeColorData);
     }
-    
-    // Upload to GPU
-    this.device.queue.writeBuffer(this.connectedNodesBuffer, 0, connectedData);
   }
   
   /**
@@ -1254,6 +1295,22 @@ export class WebGPUGraphRenderer {
     });
     this.device.queue.writeBuffer(this.pieceColorsBuffer, 0, pieceColorData);
     
+    // Create edge color buffer (vec4<f32> per edge: RGB color + alpha)
+    this.edgeColorBuffer = this.device.createBuffer({
+      size: this.edgeCount * 4 * 4, // vec4<f32> per edge
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    
+    // Initialize with gray for all edges
+    const initialEdgeColors = new Float32Array(this.edgeCount * 4);
+    for (let i = 0; i < this.edgeCount; i++) {
+      initialEdgeColors[i * 4 + 0] = 0.8;
+      initialEdgeColors[i * 4 + 1] = 0.8;
+      initialEdgeColors[i * 4 + 2] = 0.8;
+      initialEdgeColors[i * 4 + 3] = 1.0;
+    }
+    this.device.queue.writeBuffer(this.edgeColorBuffer, 0, initialEdgeColors);
+    
     console.log(`Loaded ${this.nodeCount} nodes and ${this.edgeCount} edges`);
     
     // Create bind groups
@@ -1340,6 +1397,7 @@ export class WebGPUGraphRenderer {
         { binding: 0, resource: { buffer: this.uniformBuffer } },
         { binding: 1, resource: { buffer: this.nodeBufferA } },
         { binding: 2, resource: { buffer: this.edgeIndexBuffer } },
+        { binding: 3, resource: { buffer: this.edgeColorBuffer } },
       ],
     });
     
@@ -1349,6 +1407,7 @@ export class WebGPUGraphRenderer {
         { binding: 0, resource: { buffer: this.uniformBuffer } },
         { binding: 1, resource: { buffer: this.nodeBufferB } },
         { binding: 2, resource: { buffer: this.edgeIndexBuffer } },
+        { binding: 3, resource: { buffer: this.edgeColorBuffer } },
       ],
     });
   }
@@ -1675,6 +1734,7 @@ export class WebGPUGraphRenderer {
     if (this.nodeBufferB) this.nodeBufferB.destroy();
     if (this.edgeBuffer) this.edgeBuffer.destroy();
     if (this.edgeIndexBuffer) this.edgeIndexBuffer.destroy();
+    if (this.edgeColorBuffer) this.edgeColorBuffer.destroy();
     if (this.uniformBuffer) this.uniformBuffer.destroy();
     if (this.simParamsBuffer) this.simParamsBuffer.destroy();
     if (this.nodeColorBuffer) this.nodeColorBuffer.destroy();

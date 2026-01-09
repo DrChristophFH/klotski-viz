@@ -138,6 +138,12 @@ export class WebGPUGraphRenderer {
     centerGravity: 0.0,
     maxSpeed: 150.0,
   };
+
+  // FPS tracking
+  private frameTimes: number[] = [];
+  private lastFpsUpdate = 0;
+  private currentFps = 0;
+  private readonly FPS_SAMPLE_SIZE = 60; // Average over 60 frames
   
   // Depth texture
   private depthTexture!: GPUTexture;
@@ -1461,6 +1467,22 @@ export class WebGPUGraphRenderer {
       this.animationFrameId = requestAnimationFrame(this.frame);
       return;
     }
+
+    // Track FPS
+    const now = performance.now();
+    this.frameTimes.push(now);
+
+    // Keep only recent frames
+    if (this.frameTimes.length > this.FPS_SAMPLE_SIZE) {
+      this.frameTimes.shift();
+    }
+    
+    // Update FPS every 500ms
+    if (now - this.lastFpsUpdate > 500 && this.frameTimes.length > 1) {
+      const timeSpan = this.frameTimes[this.frameTimes.length - 1] - this.frameTimes[0];
+      this.currentFps = Math.round((this.frameTimes.length - 1) / (timeSpan / 1000));
+      this.lastFpsUpdate = now;
+    }
     
     // Update camera movement (WASD) - disabled during tween
     if (!this.cameraTween?.active) {
@@ -1548,6 +1570,10 @@ export class WebGPUGraphRenderer {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
+  }
+
+  getFPS(): number {
+    return this.currentFps;
   }
   
   private async readbackNodePositions() {

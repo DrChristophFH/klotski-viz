@@ -56,6 +56,7 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
     const [centerGravity, setCenterGravity] = useState(0.0);
     const [maxSpeed, setMaxSpeed] = useState(150);
     const [damping, setDamping] = useState(0.97);
+    const [fps, setFps] = useState(0);
 
     const [layoutExpanded, setLayoutExpanded] = useState(false);
 
@@ -137,6 +138,16 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
         setIsInitialized(false);
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+      const interval = setInterval(() => {
+        if (rendererRef.current) {
+          setFps(rendererRef.current.getFPS());
+        }
+      }, 500);
+      
+      return () => clearInterval(interval);
     }, []);
 
     // Load graph data when available
@@ -222,6 +233,10 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
             height: "100%",
           }}
         />
+
+        <div style={{ position: 'absolute', top: 5, right: 5, color: 'white', fontSize: '12px', fontFamily: 'monospace', zIndex: 1000 }}>
+          FPS: {fps}
+        </div>
 
         {/* Controls Panel */}
         <div

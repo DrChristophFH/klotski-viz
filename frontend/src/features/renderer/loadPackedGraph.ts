@@ -56,9 +56,9 @@ export async function loadPackedGraph(url: string): Promise<PackedGraphData> {
   if (!response.ok) {
     throw new Error(`Failed to fetch ${fullUrl}: ${response.status}`);
   }
-  
+
   let data: ArrayBuffer;
-  
+
   if (fullUrl.endsWith('.br')) {
     // Brotli - if server sends with Content-Encoding: br, browser auto-decompresses
     // Otherwise we need a JS decompressor. For now assume server handles it.
@@ -70,7 +70,7 @@ export async function loadPackedGraph(url: string): Promise<PackedGraphData> {
     const writer = ds.writable.getWriter();
     writer.write(new Uint8Array(compressed));
     writer.close();
-    
+
     const reader = ds.readable.getReader();
     const chunks: Uint8Array[] = [];
     while (true) {
@@ -78,7 +78,7 @@ export async function loadPackedGraph(url: string): Promise<PackedGraphData> {
       if (done) break;
       chunks.push(value);
     }
-    
+
     const totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
     const result = new Uint8Array(totalLength);
     let offset = 0;
@@ -91,7 +91,7 @@ export async function loadPackedGraph(url: string): Promise<PackedGraphData> {
     // Assume uncompressed .bin
     data = await response.arrayBuffer();
   }
-  
+
   return parsePackedGraph(data);
 }
 
@@ -102,7 +102,7 @@ function parsePackedGraph(buffer: ArrayBuffer): PackedGraphData {
   const view = new DataView(buffer);
   const bytes = new Uint8Array(buffer);
   let offset = 0;
-  
+
   // Read magic bytes
   const magic = String.fromCharCode(
     view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3)
@@ -111,13 +111,13 @@ function parsePackedGraph(buffer: ArrayBuffer): PackedGraphData {
     throw new Error(`Invalid magic bytes: ${magic}`);
   }
   offset = 4;
-  
+
   // Read header
   const version = view.getUint16(offset, true); offset += 2;
   if (version !== 1) {
     throw new Error(`Unsupported version: ${version}`);
   }
-  
+
   const nodeCount = view.getUint32(offset, true); offset += 4;
   const edgeCount = view.getUint32(offset, true); offset += 4;
   const pieceCount = view.getUint16(offset, true); offset += 2;
@@ -125,9 +125,9 @@ function parsePackedGraph(buffer: ArrayBuffer): PackedGraphData {
   const boardHeight = view.getUint8(offset); offset += 1;
   const positionScaleRaw = view.getUint16(offset, true); offset += 2;
   const positionScale = positionScaleRaw / 10;
-  
+
   console.log(`Loading packed graph: ${nodeCount} nodes, ${edgeCount} edges, ${pieceCount} pieces`);
-  
+
   // Read pieces
   const pieces: PackedPiece[] = [];
   for (let i = 0; i < pieceCount; i++) {
@@ -138,7 +138,7 @@ function parsePackedGraph(buffer: ArrayBuffer): PackedGraphData {
     });
     offset += 2;
   }
-  
+
   // Read node IDs (16 bytes each as hex string)
   const nodeIds: string[] = [];
   for (let i = 0; i < nodeCount; i++) {
@@ -149,7 +149,7 @@ function parsePackedGraph(buffer: ArrayBuffer): PackedGraphData {
     nodeIds.push(hex);
     offset += 16;
   }
-  
+
   // Read node piece positions (pieceCount * 2 bytes per node)
   const nodePiecePositions: Array<Array<[number, number]>> = [];
   for (let i = 0; i < nodeCount; i++) {
@@ -163,7 +163,7 @@ function parsePackedGraph(buffer: ArrayBuffer): PackedGraphData {
     }
     nodePiecePositions.push(positions);
   }
-  
+
   // Read 3D positions (6 bytes per node: x, y, z as int16)
   const node3DPositions: Array<{ x: number; y: number; z: number }> = [];
   for (let i = 0; i < nodeCount; i++) {
@@ -173,14 +173,14 @@ function parsePackedGraph(buffer: ArrayBuffer): PackedGraphData {
     node3DPositions.push({ x, y, z });
     offset += 6;
   }
-  
+
   // Combine into nodes array
   const nodes: PackedNode[] = nodeIds.map((id, i) => ({
     id,
     positions: nodePiecePositions[i],
     ...node3DPositions[i],
   }));
-  
+
   // Read edges (10 bytes each: source u32, target u32, piece_id u8, direction u8)
   const directionMap = ['up', 'down', 'left', 'right'];
   const edges: PackedEdge[] = [];
@@ -197,7 +197,7 @@ function parsePackedGraph(buffer: ArrayBuffer): PackedGraphData {
     });
     offset += 10;
   }
-  
+
   return {
     metadata: {
       nodeCount,

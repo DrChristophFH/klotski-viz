@@ -11,7 +11,7 @@ import {
   forwardRef,
 } from "react";
 import { WebGPUGraphRenderer } from "./WebGPUGraphRenderer";
-import type { GraphData } from "./WebGPUGraphRenderer";
+import type { GraphData } from "./types";
 
 export interface WebGPUGraphProps {
   graphData: GraphData;
@@ -146,7 +146,7 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
           setFps(rendererRef.current.getFPS());
         }
       }, 500);
-      
+
       return () => clearInterval(interval);
     }, []);
 
@@ -234,7 +234,7 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
           }}
         />
 
-        <div style={{ position: 'absolute', top: 5, right: 5, color: 'white', fontSize: '12px', fontFamily: 'monospace', zIndex: 1000 }}>
+        <div style={{ position: 'absolute', top: 0, right: 5, color: 'white', fontSize: '12px', fontFamily: 'monospace', zIndex: 1000 }}>
           FPS: {fps}
         </div>
 
@@ -267,169 +267,169 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
             Force Layout Controls
             <span style={{ fontSize: '14px', marginLeft: '10px' }}>{layoutExpanded ? '▼' : '▶'}</span>
           </h3>
-          
+
           {layoutExpanded && (<>
-          {/* Pause/Resume Button */}
-          <div style={{ marginBottom: "15px", marginTop: "15px" }}>
-            <button
-              onClick={togglePause}
+            {/* Pause/Resume Button */}
+            <div style={{ marginBottom: "15px", marginTop: "15px" }}>
+              <button
+                onClick={togglePause}
+                style={{
+                  width: "100%",
+                  padding: "8px",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  borderRadius: "4px",
+                  border: "none",
+                  backgroundColor: isPaused ? "#4CAF50" : "#ff6b6b",
+                  color: "white",
+                  fontWeight: "bold",
+                }}
+              >
+                {isPaused ? "▶ Resume" : "⏸ Pause"}
+              </button>
+            </div>
+
+            {/* Collapsible Parameters Section */}
+            <div
+              onClick={() => setParamsExpanded(!paramsExpanded)}
               style={{
-                width: "100%",
-                padding: "8px",
-                fontSize: "14px",
                 cursor: "pointer",
-                borderRadius: "4px",
-                border: "none",
-                backgroundColor: isPaused ? "#4CAF50" : "#ff6b6b",
-                color: "white",
-                fontWeight: "bold",
+                padding: "8px 0",
+                borderTop: "1px solid rgba(255, 255, 255, 0.2)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
-              {isPaused ? "▶ Resume" : "⏸ Pause"}
-            </button>
-          </div>
+              <span style={{ fontSize: "14px" }}>Parameters</span>
+              <span style={{ fontSize: "12px" }}>
+                {paramsExpanded ? "▼" : "▶"}
+              </span>
+            </div>
 
-          {/* Collapsible Parameters Section */}
-          <div
-            onClick={() => setParamsExpanded(!paramsExpanded)}
-            style={{
-              cursor: "pointer",
-              padding: "8px 0",
-              borderTop: "1px solid rgba(255, 255, 255, 0.2)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <span style={{ fontSize: "14px" }}>Parameters</span>
-            <span style={{ fontSize: "12px" }}>
-              {paramsExpanded ? "▼" : "▶"}
-            </span>
-          </div>
+            {paramsExpanded && (
+              <>
+                {/* Repulsion Strength */}
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Repulsion: {repulsionStrength.toFixed(1)}
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="5000"
+                    step="10"
+                    value={repulsionStrength}
+                    onChange={(e) =>
+                      handleRepulsionChange(parseFloat(e.target.value))
+                    }
+                    style={{ width: "100%", cursor: "pointer" }}
+                  />
+                </div>
 
-          {paramsExpanded && (
-            <>
-              {/* Repulsion Strength */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    fontSize: "14px",
-                  }}
-                >
-                  Repulsion: {repulsionStrength.toFixed(1)}
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="5000"
-                  step="10"
-                  value={repulsionStrength}
-                  onChange={(e) =>
-                    handleRepulsionChange(parseFloat(e.target.value))
-                  }
-                  style={{ width: "100%", cursor: "pointer" }}
-                />
-              </div>
+                {/* Attraction Strength */}
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Attraction: {attractionStrength.toFixed(3)}
+                  </label>
+                  <input
+                    type="range"
+                    min="0.001"
+                    max="5"
+                    step="0.05"
+                    value={attractionStrength}
+                    onChange={(e) =>
+                      handleAttractionChange(parseFloat(e.target.value))
+                    }
+                    style={{ width: "100%", cursor: "pointer" }}
+                  />
+                </div>
 
-              {/* Attraction Strength */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    fontSize: "14px",
-                  }}
-                >
-                  Attraction: {attractionStrength.toFixed(3)}
-                </label>
-                <input
-                  type="range"
-                  min="0.001"
-                  max="5"
-                  step="0.05"
-                  value={attractionStrength}
-                  onChange={(e) =>
-                    handleAttractionChange(parseFloat(e.target.value))
-                  }
-                  style={{ width: "100%", cursor: "pointer" }}
-                />
-              </div>
+                {/* Center Gravity */}
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Center Gravity: {centerGravity.toFixed(2)}
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    value={centerGravity}
+                    onChange={(e) =>
+                      handleCenterGravityChange(parseFloat(e.target.value))
+                    }
+                    style={{ width: "100%", cursor: "pointer" }}
+                  />
+                </div>
 
-              {/* Center Gravity */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    fontSize: "14px",
-                  }}
-                >
-                  Center Gravity: {centerGravity.toFixed(2)}
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="10"
-                  step="0.1"
-                  value={centerGravity}
-                  onChange={(e) =>
-                    handleCenterGravityChange(parseFloat(e.target.value))
-                  }
-                  style={{ width: "100%", cursor: "pointer" }}
-                />
-              </div>
+                {/* Max Speed */}
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Max Speed: {maxSpeed.toFixed(1)}
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="200"
+                    step="5"
+                    value={maxSpeed}
+                    onChange={(e) =>
+                      handleMaxSpeedChange(parseFloat(e.target.value))
+                    }
+                    style={{ width: "100%", cursor: "pointer" }}
+                  />
+                </div>
 
-              {/* Max Speed */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    fontSize: "14px",
-                  }}
-                >
-                  Max Speed: {maxSpeed.toFixed(1)}
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="200"
-                  step="5"
-                  value={maxSpeed}
-                  onChange={(e) =>
-                    handleMaxSpeedChange(parseFloat(e.target.value))
-                  }
-                  style={{ width: "100%", cursor: "pointer" }}
-                />
-              </div>
-
-              {/* Damping */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    fontSize: "14px",
-                  }}
-                >
-                  Damping: {damping.toFixed(4)}
-                </label>
-                <input
-                  type="range"
-                  min="0.9"
-                  max="0.9999"
-                  step="0.0001"
-                  value={damping}
-                  onChange={(e) =>
-                    handleDampingChange(parseFloat(e.target.value))
-                  }
-                  style={{ width: "100%", cursor: "pointer" }}
-                />
-              </div>
-            </>
-          )}
+                {/* Damping */}
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Damping: {damping.toFixed(4)}
+                  </label>
+                  <input
+                    type="range"
+                    min="0.9"
+                    max="0.9999"
+                    step="0.0001"
+                    value={damping}
+                    onChange={(e) =>
+                      handleDampingChange(parseFloat(e.target.value))
+                    }
+                    style={{ width: "100%", cursor: "pointer" }}
+                  />
+                </div>
+              </>
+            )}
 
           </>)}
         </div>

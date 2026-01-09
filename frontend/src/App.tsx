@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import WebGPUGraph from "./features/webgpu/WebGPUGraph";
-import type { WebGPUGraphRef } from "./features/webgpu/WebGPUGraph";
+import WebGPUGraph from "./features/renderer/WebGPUGraph";
+import type { WebGPUGraphRef } from "./features/renderer/WebGPUGraph";
 import KlotskiPuzzle from "./components/KlotskiPuzzle";
 import type {
   KlotskiNode,
@@ -12,7 +12,7 @@ import {
   isEndState,
   isStartState,
   loadPackedGraph,
-} from "./features/webgpu/loadPackedGraph";
+} from "./features/renderer/loadPackedGraph";
 import { WebGPUErrorMsg } from "./components/WebGPUErrorMsg";
 import { StandardErrorMsg } from "./components/StandardErrorMsg";
 import { LoadingMsg } from "./components/LoadingMsg";

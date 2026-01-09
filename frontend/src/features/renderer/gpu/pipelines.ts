@@ -2,6 +2,7 @@ export interface Pipelines {
   computePipeline: GPUComputePipeline;
   nodeRenderPipeline: GPURenderPipeline;
   edgeRenderPipeline: GPURenderPipeline;
+  pickingPipeline: GPURenderPipeline;
 }
 
 export async function createPipelines(
@@ -9,7 +10,8 @@ export async function createPipelines(
   format: GPUTextureFormat,
   forceShaderSource: string,
   nodeShaderSource: string,
-  edgeShaderSource: string
+  edgeShaderSource: string,
+  pickingShaderSource: string
 ): Promise<Pipelines> {
   // Compute pipeline for force simulation
   const computeModule = device.createShaderModule({
@@ -106,5 +108,34 @@ export async function createPipelines(
     },
   });
 
-  return { computePipeline, nodeRenderPipeline, edgeRenderPipeline };
+  // Picking pipeline - renders node indices as colors
+  const pickingModule = device.createShaderModule({
+    code: pickingShaderSource,
+  });
+
+  const pickingPipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex: {
+      module: pickingModule,
+      entryPoint: 'vs_main',
+    },
+    fragment: {
+      module: pickingModule,
+      entryPoint: 'fs_main',
+      targets: [{
+        format: 'rgba8unorm',
+      }],
+    },
+    primitive: {
+      topology: 'triangle-list',
+      cullMode: 'none',
+    },
+    depthStencil: {
+      depthWriteEnabled: true,
+      depthCompare: 'less',
+      format: 'depth24plus',
+    },
+  });
+
+  return { computePipeline, nodeRenderPipeline, edgeRenderPipeline, pickingPipeline };
 }

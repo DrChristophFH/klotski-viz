@@ -18,6 +18,7 @@ import { StandardErrorMsg } from "./components/StandardErrorMsg";
 import { LoadingMsg } from "./components/LoadingMsg";
 import { InfoPanel } from "./features/info/InfoPanel";
 import { GitHubLink } from "./components/GitHubLink";
+import { BoardStateTooltip } from "./components/BoardStateTooltip";
 
 interface WebGPUGraphData {
   nodes: { id: string; x?: number; y?: number; z?: number }[];
@@ -46,6 +47,10 @@ function App() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [graphRef, setGraphRef] = useState<WebGPUGraphRef | null>(null);
 
+  // Hover state for tooltip
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+
   // Piece color mapping for syncing puzzle colors with graph
   const [pieceColorMapping, setPieceColorMapping] = useState<
     Map<number, number>
@@ -54,6 +59,11 @@ function App() {
   // Get the current selected node's data
   const selectedNode = selectedNodeId
     ? klotskiNodes.find((n) => n.id === selectedNodeId) || null
+    : null;
+
+  // Get the hovered node's data for tooltip
+  const hoveredNode = hoveredNodeId
+    ? klotskiNodes.find((n) => n.id === hoveredNodeId) || null
     : null;
 
   // Handle window resize
@@ -139,6 +149,12 @@ function App() {
   // Handle node selection from graph
   const handleNodeSelect = useCallback((nodeId: string | null) => {
     setSelectedNodeId(nodeId);
+  }, []);
+
+  // Handle node hover from graph
+  const handleNodeHover = useCallback((nodeId: string | null, mouseX: number, mouseY: number) => {
+    setHoveredNodeId(nodeId);
+    setHoverPosition({ x: mouseX, y: mouseY });
   }, []);
 
   // Handle move from puzzle - navigate to new state
@@ -237,11 +253,23 @@ function App() {
         onReady={() => console.log("WebGPU renderer ready")}
         onError={(err) => setWebgpuError(err)}
         onNodeSelect={handleNodeSelect}
+        onNodeHover={handleNodeHover}
         selectedNodeId={selectedNodeId}
         pieceColorMapping={pieceColorMapping}
         startPaused={true}
         ref={setGraphRef}
       />
+
+      {/* Board State Hover Tooltip */}
+      {hoveredNode && metadata && (
+        <BoardStateTooltip
+          node={hoveredNode}
+          pieces={klotskiPieces}
+          metadata={metadata}
+          mouseX={hoverPosition.x}
+          mouseY={hoverPosition.y}
+        />
+      )}
     </div>
   );
 }

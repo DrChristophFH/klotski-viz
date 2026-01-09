@@ -1,6 +1,7 @@
 import forceShaderSource from './shaders/force.wgsl?raw';
 import nodeShaderSource from './shaders/node.wgsl?raw';
 import edgeShaderSource from './shaders/edge.wgsl?raw';
+import pickingShaderSource from './shaders/picking.wgsl?raw';
 import type { Camera, GraphData } from './types';
 import { PIECE_COLORS, FPS_SAMPLE_SIZE, FPS_UPDATE_INTERVAL } from './constants';
 import { CameraController } from './camera/CameraController';
@@ -15,6 +16,7 @@ import {
   createConnectedNodesBuffer,
   createPieceColorsBuffer,
   createSphereVertexBuffer,
+
   destroyBuffers,
   type GraphBuffers,
 } from './gpu/buffers';
@@ -24,7 +26,7 @@ import { createDepthTexture } from './gpu/depth';
 import { createSphereGeometry } from './geometry/icosphere';
 import { GraphStore } from './graph/GraphStore';
 import { updateConnectedNodes } from './graph/connectivity';
-import { pickNode } from './interaction/picking';
+import { GPUPicking } from './interaction/picking';
 import { ForceSimulation } from './simulation/ForceSimulation';
 import { NodeRenderer } from './render/NodeRenderer';
 import { EdgeRenderer } from './render/EdgeRenderer';
@@ -43,6 +45,7 @@ export class WebGPUGraphRenderer {
   private nodeRenderer: NodeRenderer;
   private edgeRenderer: EdgeRenderer;
   private nodeReadback: NodeReadback;
+  private gpuPicking!: GPUPicking;
 
   // GPU Resources
   private buffers!: GraphBuffers;
@@ -63,9 +66,10 @@ export class WebGPUGraphRenderer {
   private inputState: InputState;
   private cleanupInput?: () => void;
 
-  // Node selection
+  // Node selection and hover
   private selectedNodeIndex: number = -1;
   private onNodeSelect?: (nodeId: string | null) => void;
+  private onNodeHover?: (nodeId: string | null, mouseX: number, mouseY: number) => void;
 
   // Piece color mapping
   private pieceColorMapping: Map<number, number> = new Map();
@@ -108,27 +112,17 @@ export class WebGPUGraphRenderer {
     this.inputState.keysPressed.delete(e.key.toLowerCase());
   }
 
-  private onClick(e: MouseEvent) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async onClick(_e: MouseEvent) {
     // Don't select if we were dragging
     if (this.inputState.isDragging) {
       return;
     }
 
-    // Raycast to find clicked node
-    const rect = this.canvas.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-    const nodeIndex = pickNode(
-      x,
-      y,
-      this.cameraController.getCamera(),
-      this.canvas.width,
-      this.canvas.height,
-      this.nodeReadback.getNodePositions(),
-      this.graphStore.getNodeCount()
-    );
-    this.selectNode(nodeIndex);
+    // Use GPU picking to find nearest node to cursor
+    const result = await this.gpuPicking.getPickingResults();
+    
+    this.selectNode(result.nearestNode);
   }
 
   private onMouseDown(e: MouseEvent) {
@@ -144,7 +138,7 @@ export class WebGPUGraphRenderer {
     }
   }
 
-  private onMouseMove(e: MouseEvent) {
+  private async onMouseMove(e: MouseEvent) {
     const dx = e.movementX || (e.clientX - this.inputState.lastMouseX);
     const dy = e.movementY || (e.clientY - this.inputState.lastMouseY);
 
@@ -164,6 +158,23 @@ export class WebGPUGraphRenderer {
 
     this.inputState.lastMouseX = e.clientX;
     this.inputState.lastMouseY = e.clientY;
+
+    // Handle hover detection (when no buttons pressed, regardless of drag state)
+    if (e.buttons === 0) {
+      const result = await this.gpuPicking.getPickingResults();
+
+      // Trigger hover callback for the nearest node
+      if (this.onNodeHover && result.nearestNode >= 0) {
+        const nodeId = this.graphStore.getNodeId(result.nearestNode);
+        if (nodeId) {
+          this.onNodeHover(nodeId, e.clientX, e.clientY);
+        } else {
+          this.onNodeHover(null, e.clientX, e.clientY);
+        }
+      } else if (this.onNodeHover) {
+        this.onNodeHover(null, e.clientX, e.clientY);
+      }
+    }
   }
 
   private onMouseUp(e: MouseEvent) {
@@ -223,6 +234,10 @@ export class WebGPUGraphRenderer {
 
   setOnNodeSelect(callback: (nodeId: string | null) => void) {
     this.onNodeSelect = callback;
+  }
+
+  setOnNodeHover(callback: (nodeId: string | null, mouseX: number, mouseY: number) => void) {
+    this.onNodeHover = callback;
   }
 
   selectNodeById(nodeId: string) {
@@ -307,7 +322,8 @@ export class WebGPUGraphRenderer {
       this.format,
       forceShaderSource,
       nodeShaderSource,
-      edgeShaderSource
+      edgeShaderSource,
+      pickingShaderSource
     );
 
     // Create depth texture
@@ -319,6 +335,10 @@ export class WebGPUGraphRenderer {
       simParamsBuffer: createSimParamsBuffer(this.device),
       sphereVertexBuffer: createSphereVertexBuffer(this.device, sphereGeometry.vertexData),
     } as GraphBuffers;
+
+    // Initialize GPU picking
+    this.gpuPicking = new GPUPicking(this.device);
+    this.gpuPicking.resize(this.canvas.width, this.canvas.height);
 
     this.isInitialized = true;
     return true;
@@ -444,6 +464,28 @@ export class WebGPUGraphRenderer {
       }
     }
 
+    // Render picking pass for node selection/hover (using same buffer as main render)
+    const pickingBindGroup = this.pingPong === 0 ? this.bindGroups.pickingBindGroupA : this.bindGroups.pickingBindGroupB;
+    this.gpuPicking.renderPickingPass(
+      commandEncoder,
+      this.pipelines.pickingPipeline,
+      pickingBindGroup,
+      this.sphereVertexCount,
+      this.graphStore.getNodeCount()
+    );
+
+    // Read back picking region around mouse cursor
+    if (this.inputState.lastMouseX >= 0 && this.inputState.lastMouseY >= 0) {
+      const rect = this.canvas.getBoundingClientRect();
+      const mouseX = this.inputState.lastMouseX - rect.left;
+      const mouseY = this.inputState.lastMouseY - rect.top;
+      this.gpuPicking.analyzePickingTexture(
+        commandEncoder,
+        mouseX,
+        mouseY,
+      );
+    }
+
     // Render pass
     const textureView = this.context.getCurrentTexture().createView();
 
@@ -540,6 +582,11 @@ export class WebGPUGraphRenderer {
     if (this.isInitialized) {
       this.depthTexture.destroy();
       this.depthTexture = createDepthTexture(this.device, width, height);
+      
+      // Resize picking textures
+      if (this.gpuPicking) {
+        this.gpuPicking.resize(width, height);
+      }
     }
   }
 
@@ -558,6 +605,10 @@ export class WebGPUGraphRenderer {
 
     if (this.depthTexture) {
       this.depthTexture.destroy();
+    }
+
+    if (this.gpuPicking) {
+      this.gpuPicking.destroy();
     }
   }
 }

@@ -8,6 +8,8 @@ export interface BindGroups {
   nodeRenderBindGroupB: GPUBindGroup;
   edgeRenderBindGroupA: GPUBindGroup;
   edgeRenderBindGroupB: GPUBindGroup;
+  pickingBindGroupA: GPUBindGroup;
+  pickingBindGroupB: GPUBindGroup;
 }
 
 export function createBindGroups(
@@ -80,6 +82,25 @@ export function createBindGroups(
     ],
   });
 
+  // Picking bind groups (for GPU-based node picking)
+  const pickingBindGroupA = device.createBindGroup({
+    layout: pipelines.pickingPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: buffers.uniformBuffer } },
+      { binding: 1, resource: { buffer: buffers.nodeBufferA } },
+      { binding: 2, resource: { buffer: buffers.sphereVertexBuffer } },
+    ],
+  });
+
+  const pickingBindGroupB = device.createBindGroup({
+    layout: pipelines.pickingPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: buffers.uniformBuffer } },
+      { binding: 1, resource: { buffer: buffers.nodeBufferB } },
+      { binding: 2, resource: { buffer: buffers.sphereVertexBuffer } },
+    ],
+  });
+
   return {
     computeBindGroupA,
     computeBindGroupB,
@@ -87,5 +108,7 @@ export function createBindGroups(
     nodeRenderBindGroupB,
     edgeRenderBindGroupA,
     edgeRenderBindGroupB,
+    pickingBindGroupA,
+    pickingBindGroupB,
   };
 }

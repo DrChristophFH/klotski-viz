@@ -21,6 +21,7 @@ export interface WebGPUGraphProps {
   onReady?: () => void;
   onError?: (error: string) => void;
   onNodeSelect?: (nodeId: string | null) => void;
+  onNodeHover?: (nodeId: string | null, mouseX: number, mouseY: number) => void;
   selectedNodeId?: string | null;
   pieceColorMapping?: Map<number, number>;
   startPaused?: boolean;
@@ -40,6 +41,7 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
       onReady,
       onError,
       onNodeSelect,
+      onNodeHover,
       selectedNodeId,
       pieceColorMapping,
       startPaused = false,
@@ -59,6 +61,10 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
     const [fps, setFps] = useState(0);
 
     const [layoutExpanded, setLayoutExpanded] = useState(false);
+
+    // Hover state for internal tooltip (if onNodeHover is not provided)
+    const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+    const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
 
     // Expose methods to parent via ref
     useImperativeHandle(
@@ -80,6 +86,23 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
         rendererRef.current.setOnNodeSelect(onNodeSelect);
       }
     }, [onNodeSelect, isInitialized]);
+
+    // Set up node hover callback
+    useEffect(() => {
+      if (rendererRef.current) {
+        const hoverCallback = (nodeId: string | null, mouseX: number, mouseY: number) => {
+          if (onNodeHover) {
+            // Use external callback if provided
+            onNodeHover(nodeId, mouseX, mouseY);
+          } else {
+            // Use internal state for default tooltip
+            setHoveredNodeId(nodeId);
+            setHoverPosition({ x: mouseX, y: mouseY });
+          }
+        };
+        rendererRef.current.setOnNodeHover(hoverCallback);
+      }
+    }, [onNodeHover, isInitialized]);
 
     // Handle external selection changes
     useEffect(() => {
@@ -233,6 +256,30 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
             height: "100%",
           }}
         />
+
+        {/* Hover Tooltip (if not using external onNodeHover) */}
+        {!onNodeHover && hoveredNodeId && (
+          <div
+            style={{
+              position: "absolute",
+              left: hoverPosition.x + 15,
+              top: hoverPosition.y + 15,
+              background: "rgba(0, 0, 0, 0.85)",
+              backdropFilter: "blur(10px)",
+              border: "1px solid rgba(255, 255, 255, 0.3)",
+              padding: "8px 12px",
+              borderRadius: "6px",
+              color: "white",
+              fontFamily: "monospace",
+              fontSize: "12px",
+              pointerEvents: "none",
+              zIndex: 2000,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Node: {hoveredNodeId}
+          </div>
+        )}
 
         <div style={{ position: 'absolute', top: 0, right: 5, color: 'white', fontSize: '12px', fontFamily: 'monospace', zIndex: 1000 }}>
           FPS: {fps}

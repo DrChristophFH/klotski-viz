@@ -30,7 +30,15 @@ fn vs_main(
   
   let node = nodes[instanceIndex];
   let sphereVertex = sphereVertices[vertexIndex].xyz;
-  let worldPos = node.position.xyz + sphereVertex;
+  // Distance-based scaling
+  let nodePos = nodes[instanceIndex].position.xyz;
+  let cameraPos = uniforms.cameraPosition.xyz;
+  let dist = distance(nodePos, cameraPos);
+
+  let scaleFactor = 1.0 + 0.0015 * dist;
+  
+  // Scale and translate to node position
+  let worldPos = nodePos + sphereVertex * scaleFactor;
   
   output.position = uniforms.viewProjection * vec4<f32>(worldPos, 1.0);
   output.nodeIndex = instanceIndex;

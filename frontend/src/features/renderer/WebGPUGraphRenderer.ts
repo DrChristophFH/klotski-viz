@@ -313,6 +313,21 @@ export class WebGPUGraphRenderer {
 
     // Re-apply the current coloring mode with the new highlighting state
     this.setColoringMode(this.currentColoringMode);
+
+    // Update node instance lists if we have a selection (to show/hide end states)
+    if (this.selectedNodeIndex >= 0) {
+      const connectedData = updateConnectedNodes(
+        this.selectedNodeIndex,
+        this.graphStore.getNodeCount(),
+        this.graphStore.getEdgeIndices(),
+        this.graphStore.getEdgePieceIds(),
+        this.graphStore.getEdgeCount(),
+        this.pieceColorMapping,
+        this.device,
+        this.buffers.connectedNodesBuffer
+      );
+      this.updateNodeInstanceLists(connectedData);
+    }
   }
 
   selectNodeById(nodeId: string) {
@@ -472,11 +487,12 @@ export class WebGPUGraphRenderer {
       return;
     }
 
-    // Selection active: split selected/connected (opaque) vs others (transparent)
+    // Selection active: split selected/connected/end state if toggled (opaque) vs others (transparent)
+    const endStateIndices = this.graphStore.getEndStateIndices();
     let opaqueCount = 0;
     let transparentCount = 0;
     for (let i = 0; i < nodeCount; i++) {
-      if (connectedData[i] > 0) opaqueCount++;
+      if (connectedData[i] > 0 || (this.endStateHighlightingEnabled && endStateIndices.has(i))) opaqueCount++;
       else transparentCount++;
     }
 
@@ -486,7 +502,7 @@ export class WebGPUGraphRenderer {
     let ti = 0;
 
     for (let i = 0; i < nodeCount; i++) {
-      if (connectedData[i] > 0) opaqueIndices[oi++] = i;
+      if (connectedData[i] > 0 || (this.endStateHighlightingEnabled && endStateIndices.has(i))) opaqueIndices[oi++] = i;
       else transparentIndices[ti++] = i;
     }
 

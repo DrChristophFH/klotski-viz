@@ -30,12 +30,12 @@ export function BoardStateTooltip({
   const { board_width, board_height } = metadata;
 
   // Position tooltip to right and below cursor, but keep on screen
-  const tooltipWidth = board_width * (MINI_CELL_SIZE + GAP) + 30;
+  const tooltipWidth = board_width * (MINI_CELL_SIZE + GAP) + 25;
   const tooltipHeight = board_height * (MINI_CELL_SIZE + GAP) + 60;
-  
+
   let tooltipX = mouseX + 15;
   let tooltipY = mouseY + 15;
-  
+
   // Keep on screen
   if (tooltipX + tooltipWidth > window.innerWidth) {
     tooltipX = mouseX - tooltipWidth - 15;
@@ -50,6 +50,7 @@ export function BoardStateTooltip({
         position: 'fixed',
         left: tooltipX,
         top: tooltipY,
+        width: tooltipWidth,
         background: 'rgba(0, 0, 0, 0.9)',
         backdropFilter: 'blur(10px)',
         border: '1px solid rgba(255, 255, 255, 0.3)',
@@ -60,7 +61,12 @@ export function BoardStateTooltip({
         fontSize: '11px',
         pointerEvents: 'none',
         zIndex: 3000,
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.8)',
+        boxSizing: 'border-box',
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
       }}
     >
       {/* Mini board using shared visual component */}
@@ -72,14 +78,14 @@ export function BoardStateTooltip({
         gap={GAP}
         showGoal={false}
       />
-      
+
       {/* Distance to goal display */}
       {distanceToGoal !== null && distanceToGoal !== undefined && (
-        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>
-          <div style={{ fontSize: '12px', fontWeight: 'bold' }}>
-            Distance to End States: {
+        <div style={{ paddingTop: '4px' }}>
+          <div>
+            Solvable in {
               distanceToGoal === Infinity ? '∞ (unreachable)' : distanceToGoal
-            }
+            } move{distanceToGoal === 1 ? '' : 's'}
           </div>
         </div>
       )}

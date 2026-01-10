@@ -5,7 +5,7 @@ export const COLOR_PALETTE = {
   valueMin: [0.0, 1.0, 0.0],            // Green (close to goal/start)
   valueMid: [0.0, 0.6, 1.0],            // Light blue (middle distance)
   valueMax: [0.0, 0.1, 1.0],            // Deep blue (far from goal)
-  endStateHighlight: [1.0, 1.0, 0.0],   // Yellow (end state highlight)
+  endStateHighlight: [1.0, 0.0, 0.0],   // Yellow (end state highlight)
 } as const;
 
 export const ColoringMode = {

@@ -10,12 +10,16 @@ interface InfoPanelProps {
   } | null;
   moveToStartState: () => void;
   onColoringModeChange?: (mode: ColoringMode) => void;
+  endStateHighlightingEnabled?: boolean;
+  onEndStateHighlightingChange?: (enabled: boolean) => void;
 }
 
 export function InfoPanel({
   metadata,
   moveToStartState,
   onColoringModeChange,
+  endStateHighlightingEnabled = false,
+  onEndStateHighlightingChange,
 }: InfoPanelProps) {
   // Collapsible info panel state
   const [infoExpanded, setInfoExpanded] = useState(false);
@@ -104,7 +108,6 @@ export function InfoPanel({
             >
               <option value={ColoringMode.Spectral}>Spectral (by index)</option>
               <option value={ColoringMode.DistanceToGoal}>Distance to Goal</option>
-              <option value={ColoringMode.DistanceToGoalHighlighted}>Distance to Goal (End States Highlighted)</option>
             </select>
             <div
               style={{
@@ -124,14 +127,6 @@ export function InfoPanel({
                   <div>Light Blue → Deep Blue = Farther</div>
                   <div>Dark Gray = Unreachable</div>
                 </>
-              ) : coloringMode === ColoringMode.DistanceToGoalHighlighted ? (
-                <>
-                  <b>Distance to Goal with End States:</b>
-                  <div>Yellow = End states</div>
-                  <div>Green = Close to goal</div>
-                  <div>Light Blue → Deep Blue = Farther</div>
-                  <div>Dark Gray = Unreachable</div>
-                </>
               ) : (
                 <>
                   <b>Spectral coloring:</b>
@@ -139,6 +134,20 @@ export function InfoPanel({
                 </>
               )}
             </div>
+            <label style={{ display: "flex", alignItems: "center", marginTop: "10px", fontSize: "12px", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={endStateHighlightingEnabled}
+                onChange={(e) => {
+                  onEndStateHighlightingChange?.(e.target.checked);
+                }}
+                style={{
+                  marginRight: "8px",
+                  cursor: "pointer",
+                }}
+              />
+              <span>Highlight End States (Red)</span>
+            </label>
           </div>
           <div style={{ marginBottom: "15px" }}>
             <button

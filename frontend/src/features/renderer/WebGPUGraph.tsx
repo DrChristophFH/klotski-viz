@@ -35,6 +35,7 @@ export interface WebGPUGraphRef {
   initializeGoalDistances: (goalNodeIds: string[]) => void;
   setColoringMode: (mode: ColoringMode) => void;
   getDistanceToGoal: (nodeId: string) => number | null;
+  setEndStateHighlighting: (enabled: boolean) => void;
 }
 
 export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
@@ -91,6 +92,9 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
         },
         getDistanceToGoal: (nodeId: string) => {
           return rendererRef.current?.getDistanceToGoal(nodeId) ?? null;
+        },
+        setEndStateHighlighting: (enabled: boolean) => {
+          rendererRef.current?.setEndStateHighlighting(enabled);
         },
       }),
       []

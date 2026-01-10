@@ -63,9 +63,16 @@ fn vs_main(
     } else if (connection_state >= 2u) {
         size *= 1.2;
     }
+
+    // Distance-based scaling
+    let node_pos = nodes[node_idx].position.xyz;
+    let camera_pos = uniforms.camera_position.xyz;
+    let dist = distance(node_pos, camera_pos);
+
+    let scale_factor = 1.0 + 0.0005 * dist;
+    size *= scale_factor;
     
     // Scale and translate to node position
-    let node_pos = nodes[node_idx].position.xyz;
     let world_pos = node_pos + local_pos * size;
     
     output.position = uniforms.view_proj * vec4<f32>(world_pos, 1.0);

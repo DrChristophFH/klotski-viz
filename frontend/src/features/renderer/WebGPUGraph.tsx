@@ -12,6 +12,7 @@ import {
 } from "react";
 import { WebGPUGraphRenderer } from "./WebGPUGraphRenderer";
 import type { GraphData } from "./types";
+import { ColoringMode } from "./graph/colorModes";
 
 export interface WebGPUGraphProps {
   graphData: GraphData;
@@ -19,6 +20,7 @@ export interface WebGPUGraphProps {
   height?: number;
   backgroundColor?: string;
   onReady?: () => void;
+  onGraphDataLoaded?: () => void;
   onError?: (error: string) => void;
   onNodeSelect?: (nodeId: string | null) => void;
   onNodeHover?: (nodeId: string | null, mouseX: number, mouseY: number) => void;
@@ -30,6 +32,8 @@ export interface WebGPUGraphProps {
 export interface WebGPUGraphRef {
   selectNodeById: (nodeId: string) => void;
   setPieceColorMapping: (mapping: Map<number, number>) => void;
+  initializeGoalDistances: (goalNodeIds: string[]) => void;
+  setColoringMode: (mode: ColoringMode) => void;
 }
 
 export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
@@ -39,6 +43,7 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
       width = window.innerWidth,
       height = window.innerHeight,
       onReady,
+      onGraphDataLoaded,
       onError,
       onNodeSelect,
       onNodeHover,
@@ -75,6 +80,13 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
         },
         setPieceColorMapping: (mapping: Map<number, number>) => {
           rendererRef.current?.setPieceColorMapping(mapping);
+        },
+        initializeGoalDistances: (goalNodeIds: string[]) => {
+          console.log("Initializing goal distances for nodes:", goalNodeIds);
+          rendererRef.current?.initializeGoalDistances(goalNodeIds);
+        },
+        setColoringMode: (mode: ColoringMode) => {
+          rendererRef.current?.setColoringMode(mode);
         },
       }),
       []
@@ -203,7 +215,10 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
       if (startPaused) {
         renderer.togglePause();
       }
-    }, [isInitialized, graphData, startPaused]);
+
+      // Notify parent that graph data has been loaded
+      onGraphDataLoaded?.();
+    }, [isInitialized, graphData, startPaused, onGraphDataLoaded]);
 
     // Handle resize
     useEffect(() => {

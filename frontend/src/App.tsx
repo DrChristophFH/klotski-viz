@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import WebGPUGraph from "./features/renderer/WebGPUGraph";
 import type { WebGPUGraphRef } from "./features/renderer/WebGPUGraph";
+import { ColoringMode } from "./features/renderer/graph/colorModes";
 import KlotskiPuzzle from "./components/KlotskiPuzzle";
 import type {
   KlotskiNode,
@@ -40,7 +41,7 @@ function App() {
   const [klotskiNodes, setKlotskiNodes] = useState<KlotskiNode[]>([]);
   const [klotskiEdges, setKlotskiEdges] = useState<KlotskiEdge[]>([]);
   const [klotskiPieces, setKlotskiPieces] = useState<KlotskiPiece[]>([]);
-  const [, setEndStates] = useState<Set<string>>(new Set());
+  const [endStates, setEndStates] = useState<Set<string>>(new Set());
   const [startStateId, setStartStateId] = useState<string | null>(null);
 
   // Selected node state
@@ -65,6 +66,14 @@ function App() {
   const hoveredNode = hoveredNodeId
     ? klotskiNodes.find((n) => n.id === hoveredNodeId) || null
     : null;
+
+  // Initialize goal distances once after graph data is loaded and end states are available
+  const handleGraphDataLoaded = useCallback(() => {
+    if (graphRef && endStates.size > 0) {
+      console.log("Initializing goal distances with end states:", Array.from(endStates));
+      graphRef.initializeGoalDistances(Array.from(endStates));
+    }
+  }, [graphRef, endStates]);
 
   // Handle window resize
   useEffect(() => {
@@ -204,6 +213,11 @@ function App() {
             setSelectedNodeId(startStateId);
           }
         }}
+        onColoringModeChange={(mode: ColoringMode) => {
+          if (graphRef) {
+            graphRef.setColoringMode(mode);
+          }
+        }}
       />
       <GitHubLink />
 
@@ -251,6 +265,7 @@ function App() {
         width={dimensions.width}
         height={dimensions.height}
         onReady={() => console.log("WebGPU renderer ready")}
+        onGraphDataLoaded={handleGraphDataLoaded}
         onError={(err) => setWebgpuError(err)}
         onNodeSelect={handleNodeSelect}
         onNodeHover={handleNodeHover}

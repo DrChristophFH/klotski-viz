@@ -14,6 +14,8 @@ export interface GraphBuffers {
   sphereVertexBuffer: GPUBuffer;
 }
 
+import { generateSpectralColors } from '../graph/colorModes';
+
 export function createNodeBuffers(
   device: GPUDevice,
   nodeData: Float32Array<ArrayBuffer>
@@ -79,17 +81,7 @@ export function createSimParamsBuffer(device: GPUDevice): GPUBuffer {
 }
 
 export function createNodeColorBuffer(device: GPUDevice, nodeCount: number): GPUBuffer {
-  const colorData = new Float32Array(nodeCount * 4);
-
-  for (let i = 0; i < nodeCount; i++) {
-    const hue = (i / nodeCount) * 100;
-    const rgb = hslToRgb(hue + 130, 1.0, 0.5);
-
-    colorData[i * 4 + 0] = rgb[0];
-    colorData[i * 4 + 1] = rgb[1];
-    colorData[i * 4 + 2] = rgb[2];
-    colorData[i * 4 + 3] = 1.0;
-  }
+  const colorData = generateSpectralColors(nodeCount);
 
   const buffer = device.createBuffer({
     size: colorData.byteLength,
@@ -99,6 +91,14 @@ export function createNodeColorBuffer(device: GPUDevice, nodeCount: number): GPU
   device.queue.writeBuffer(buffer, 0, colorData);
 
   return buffer;
+}
+
+export function updateNodeColorBuffer(
+  device: GPUDevice,
+  buffer: GPUBuffer,
+  colorData: Float32Array
+): void {
+  device.queue.writeBuffer(buffer, 0, colorData);
 }
 
 export function createConnectedNodesBuffer(device: GPUDevice, nodeCount: number): GPUBuffer {
@@ -183,31 +183,3 @@ export function destroyBuffers(buffers: Partial<GraphBuffers>) {
   if (buffers.pieceColorsBuffer) buffers.pieceColorsBuffer.destroy();
   if (buffers.sphereVertexBuffer) buffers.sphereVertexBuffer.destroy();
 }
-
-function hslToRgb(h: number, s: number, l: number): [number, number, number] {
-  h /= 360;
-
-  const hue2rgb = (p: number, q: number, t: number) => {
-    if (t < 0) t += 1;
-    if (t > 1) t -= 1;
-    if (t < 1 / 6) return p + (q - p) * 6 * t;
-    if (t < 1 / 2) return q;
-    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-    return p;
-  };
-
-  if (s === 0) {
-    return [l, l, l];
-  }
-
-  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-  const p = 2 * l - q;
-
-  return [
-    hue2rgb(p, q, h + 1 / 3),
-    hue2rgb(p, q, h),
-    hue2rgb(p, q, h - 1 / 3),
-  ];
-}
-
-

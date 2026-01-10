@@ -20,6 +20,7 @@ import {
 
   destroyBuffers,
   type GraphBuffers,
+  updateNodeColorBuffer,
 } from './gpu/buffers';
 import { createPipelines, type Pipelines } from './gpu/pipelines';
 import { createBindGroups, type BindGroups } from './gpu/bindGroups';
@@ -32,6 +33,7 @@ import { ForceSimulation } from './simulation/ForceSimulation';
 import { NodeRenderer } from './render/NodeRenderer';
 import { EdgeRenderer } from './render/EdgeRenderer';
 import { NodeReadback } from './readback/NodeReadback';
+import { ColoringMode, generateSpectralColors, generateDistanceToGoalColors, generateDistanceToGoalHighlightedColors } from './graph/colorModes';
 
 export class WebGPUGraphRenderer {
   private device!: GPUDevice;
@@ -83,6 +85,9 @@ export class WebGPUGraphRenderer {
   private frameTimes: number[] = [];
   private lastFpsUpdate = 0;
   private currentFps = 0;
+
+  // Coloring mode
+  private coloringMode: ColoringMode = ColoringMode.Spectral;   // Default mode
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -245,6 +250,50 @@ export class WebGPUGraphRenderer {
 
   setOnNodeHover(callback: (nodeId: string | null, mouseX: number, mouseY: number) => void) {
     this.onNodeHover = callback;
+  }
+
+  initializeGoalDistances(goalNodeIds: string[]): void {
+    this.graphStore.computeDistancesToNearestGoal(goalNodeIds);
+  }
+
+  setColoringMode(mode: ColoringMode): void {
+    this.coloringMode = mode;
+
+    const nodeCount = this.graphStore.getNodeCount();
+    let newColorData: Float32Array;
+
+    switch (mode) {
+      case ColoringMode.DistanceToGoal: {
+        const distances = this.graphStore.getDistancesToGoal();
+        if (distances) {
+          newColorData = generateDistanceToGoalColors(distances, nodeCount);
+        } else {
+          console.warn('Distance data not available, falling back to spectral coloring');
+          newColorData = generateSpectralColors(nodeCount);
+        }
+        break;
+      }
+      case ColoringMode.DistanceToGoalHighlighted: {
+        const distances = this.graphStore.getDistancesToGoal();
+        const endStateIndices = this.graphStore.getEndStateIndices();
+        if (distances) {
+          newColorData = generateDistanceToGoalHighlightedColors(distances, nodeCount, endStateIndices);
+        } else {
+          console.warn('Distance data not available, falling back to spectral coloring');
+          newColorData = generateSpectralColors(nodeCount);
+        }
+        break;
+      }
+      case ColoringMode.Spectral:
+      default:
+        newColorData = generateSpectralColors(nodeCount);
+        break;
+    }
+
+    // Update GPU buffer with new colors
+    if (this.buffers && this.buffers.nodeColorBuffer) {
+      updateNodeColorBuffer(this.device, this.buffers.nodeColorBuffer, newColorData);
+    }
   }
 
   selectNodeById(nodeId: string) {

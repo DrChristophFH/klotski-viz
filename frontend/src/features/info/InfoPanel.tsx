@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ColoringMode } from "../renderer/graph/colorModes";
 
 interface InfoPanelProps {
   metadata: {
@@ -8,14 +9,17 @@ interface InfoPanelProps {
     board_height: number;
   } | null;
   moveToStartState: () => void;
+  onColoringModeChange?: (mode: ColoringMode) => void;
 }
 
 export function InfoPanel({
   metadata,
   moveToStartState,
+  onColoringModeChange,
 }: InfoPanelProps) {
   // Collapsible info panel state
   const [infoExpanded, setInfoExpanded] = useState(false);
+  const [coloringMode, setColoringMode] = useState<ColoringMode>("spectral");
   
   return (
     <div
@@ -76,6 +80,65 @@ export function InfoPanel({
             <div>Scroll - Zoom</div>
             <div>Click node - Select state</div>
             <div>Middle mouse + drag - Orbit selected state</div>
+          </div>
+          <div style={{ marginBottom: "15px" }}>
+            <label style={{ display: "block", marginBottom: "8px", fontSize: "12px" }}>
+              <b>Node Coloring:</b>
+            </label>
+            <select
+              value={coloringMode}
+              onChange={(e) => {
+                setColoringMode(e.target.value as ColoringMode);
+                onColoringModeChange?.(e.target.value as ColoringMode);
+              }}
+              style={{
+                width: "100%",
+                padding: "6px",
+                fontSize: "12px",
+                borderRadius: "4px",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                color: "white",
+                cursor: "pointer",
+              }}
+            >
+              <option value={ColoringMode.Spectral}>Spectral (by index)</option>
+              <option value={ColoringMode.DistanceToGoal}>Distance to Goal</option>
+              <option value={ColoringMode.DistanceToGoalHighlighted}>Distance to Goal (End States Highlighted)</option>
+            </select>
+            <div
+              style={{
+                fontSize: "10px",
+                marginTop: "6px",
+                opacity: 0.7,
+                padding: "6px",
+                backgroundColor: "rgba(0, 0, 0, 0.3)",
+                borderRadius: "4px",
+                lineHeight: 1.5,
+              }}
+            >
+              {coloringMode === ColoringMode.DistanceToGoal ? (
+                <>
+                  <b>Distance to Goal (Hop Count):</b>
+                  <div>Green = Close to goal</div>
+                  <div>Light Blue → Deep Blue = Farther</div>
+                  <div>Dark Gray = Unreachable</div>
+                </>
+              ) : coloringMode === ColoringMode.DistanceToGoalHighlighted ? (
+                <>
+                  <b>Distance to Goal with End States:</b>
+                  <div>Yellow = End states</div>
+                  <div>Green = Close to goal</div>
+                  <div>Light Blue → Deep Blue = Farther</div>
+                  <div>Dark Gray = Unreachable</div>
+                </>
+              ) : (
+                <>
+                  <b>Spectral coloring:</b>
+                  <div>Rainbow gradient by node index</div>
+                </>
+              )}
+            </div>
           </div>
           <div style={{ marginBottom: "15px" }}>
             <button

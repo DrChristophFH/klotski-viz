@@ -296,6 +296,20 @@ export class WebGPUGraphRenderer {
     }
   }
 
+  getDistanceToGoal(nodeId: string): number | null {
+    const nodeIndex = this.graphStore.getNodeIndex(nodeId);
+    if (nodeIndex === undefined) {
+      return null;
+    }
+
+    const distances = this.graphStore.getDistancesToGoal();
+    if (!distances || nodeIndex >= distances.length) {
+      return null;
+    }
+
+    return distances[nodeIndex];
+  }
+
   selectNodeById(nodeId: string) {
     const index = this.graphStore.getNodeIndex(nodeId);
     if (index !== undefined) {

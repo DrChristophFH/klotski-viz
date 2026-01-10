@@ -51,6 +51,7 @@ function App() {
   // Hover state for tooltip
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+  const [hoveredNodeDistance, setHoveredNodeDistance] = useState<number | null>(null);
 
   // Piece color mapping for syncing puzzle colors with graph
   const [pieceColorMapping, setPieceColorMapping] = useState<
@@ -164,7 +165,15 @@ function App() {
   const handleNodeHover = useCallback((nodeId: string | null, mouseX: number, mouseY: number) => {
     setHoveredNodeId(nodeId);
     setHoverPosition({ x: mouseX, y: mouseY });
-  }, []);
+    
+    // Get distance to goal for the hovered node
+    if (nodeId && graphRef) {
+      const distance = graphRef.getDistanceToGoal(nodeId);
+      setHoveredNodeDistance(distance);
+    } else {
+      setHoveredNodeDistance(null);
+    }
+  }, [graphRef]);
 
   // Handle move from puzzle - navigate to new state
   const handlePuzzleMove = useCallback(
@@ -283,6 +292,7 @@ function App() {
           metadata={metadata}
           mouseX={hoverPosition.x}
           mouseY={hoverPosition.y}
+          distanceToGoal={hoveredNodeDistance}
         />
       )}
     </div>

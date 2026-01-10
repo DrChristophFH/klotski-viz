@@ -11,6 +11,7 @@ interface BoardStateTooltipProps {
   metadata: KlotskiMetadata;
   mouseX: number;
   mouseY: number;
+  distanceToGoal?: number | null;
 }
 
 const MINI_CELL_SIZE = 15; // Small cells for tooltip
@@ -22,6 +23,7 @@ export function BoardStateTooltip({
   metadata,
   mouseX,
   mouseY,
+  distanceToGoal,
 }: BoardStateTooltipProps) {
   if (!node) return null;
 
@@ -70,6 +72,17 @@ export function BoardStateTooltip({
         gap={GAP}
         showGoal={false}
       />
+      
+      {/* Distance to goal display */}
+      {distanceToGoal !== null && distanceToGoal !== undefined && (
+        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>
+          <div style={{ fontSize: '12px', fontWeight: 'bold' }}>
+            Distance to End States: {
+              distanceToGoal === Infinity ? '∞ (unreachable)' : distanceToGoal
+            }
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -11,7 +11,6 @@ export const COLOR_PALETTE = {
 export const ColoringMode = {
   Spectral: 'spectral',
   DistanceToGoal: 'distance-to-goal',
-  DistanceToGoalHighlighted: 'distance-to-goal-highlighted',
 } as const;
 
 export type ColoringMode = typeof ColoringMode[keyof typeof ColoringMode];
@@ -76,7 +75,7 @@ export function generateSpectralColors(nodeCount: number): Float32Array<ArrayBuf
 }
 
 export function generateDistanceToGoalColors(
-  distances: Float32Array,
+  distances: Float32Array<ArrayBuffer>,
   nodeCount: number
 ): Float32Array<ArrayBuffer> {
   const colorData = new Float32Array(nodeCount * 4);
@@ -120,48 +119,25 @@ export function generateDistanceToGoalColors(
   return colorData;
 }
 
-export function generateDistanceToGoalHighlightedColors(
-  distances: Float32Array<ArrayBuffer>,
-  nodeCount: number,
+export function applyEndStateHighlighting(
+  colorData: Float32Array<ArrayBuffer>,
   endStateIndices: Set<number>
 ): Float32Array<ArrayBuffer> {
-  const colorData = new Float32Array(nodeCount * 4);
-
-  let maxDistance = 0;
-  for (let i = 0; i < nodeCount; i++) {
-    if (isFinite(distances[i]) && distances[i] > maxDistance) {
-      maxDistance = distances[i];
-    }
+  const result = new Float32Array(colorData);
+  for (const index of endStateIndices) {
+    const [r, g, b] = COLOR_PALETTE.endStateHighlight;
+    result[index * 4 + 0] = r;
+    result[index * 4 + 1] = g;
+    result[index * 4 + 2] = b;
+    result[index * 4 + 3] = 1.0;
   }
-
-  const normalizedMax = maxDistance > 0 ? maxDistance : 1;
-
-  for (let i = 0; i < nodeCount; i++) {
-    const distance = distances[i];
-    let r = 0, g = 0, b = 0;
-
-    if (!isFinite(distance)) {
-      [r, g, b] = COLOR_PALETTE.unreachable;
-    } else if (endStateIndices.has(i)) {
-      [r, g, b] = COLOR_PALETTE.endStateHighlight;
-    } else {
-      const normalized = distance / normalizedMax;
-      [r, g, b] = mapValueToColor(normalized);
-    }
-
-    colorData[i * 4 + 0] = r;
-    colorData[i * 4 + 1] = g;
-    colorData[i * 4 + 2] = b;
-    colorData[i * 4 + 3] = 1.0;
-  }
-
-  return colorData;
+  return result;
 }
 
 export function generateWeightedDistanceColors(
-  distances: Float32Array,
+  distances: Float32Array<ArrayBuffer>,
   nodeCount: number
-): Float32Array {
+): Float32Array<ArrayBuffer> {
   const colorData = new Float32Array(nodeCount * 4);
 
   let maxDistance = 0;

@@ -53,6 +53,9 @@ function App() {
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [hoveredNodeDistance, setHoveredNodeDistance] = useState<number | null>(null);
 
+  // End state highlighting toggle
+  const [endStateHighlightingEnabled, setEndStateHighlightingEnabled] = useState(false);
+
   // Piece color mapping for syncing puzzle colors with graph
   const [pieceColorMapping, setPieceColorMapping] = useState<
     Map<number, number>
@@ -225,6 +228,13 @@ function App() {
         onColoringModeChange={(mode: ColoringMode) => {
           if (graphRef) {
             graphRef.setColoringMode(mode);
+          }
+        }}
+        endStateHighlightingEnabled={endStateHighlightingEnabled}
+        onEndStateHighlightingChange={(enabled: boolean) => {
+          setEndStateHighlightingEnabled(enabled);
+          if (graphRef) {
+            graphRef.setEndStateHighlighting(enabled);
           }
         }}
       />

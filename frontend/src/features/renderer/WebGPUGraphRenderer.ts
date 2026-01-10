@@ -33,7 +33,7 @@ import { ForceSimulation } from './simulation/ForceSimulation';
 import { NodeRenderer } from './render/NodeRenderer';
 import { EdgeRenderer } from './render/EdgeRenderer';
 import { NodeReadback } from './readback/NodeReadback';
-import { ColoringMode, generateSpectralColors, generateDistanceToGoalColors, generateDistanceToGoalHighlightedColors } from './graph/colorModes';
+import { ColoringMode, generateSpectralColors, generateDistanceToGoalColors, applyEndStateHighlighting } from './graph/colorModes';
 
 export class WebGPUGraphRenderer {
   private device!: GPUDevice;
@@ -80,6 +80,10 @@ export class WebGPUGraphRenderer {
 
   // Piece color mapping
   private pieceColorMapping: Map<number, number> = new Map();
+
+  // Coloring state
+  private endStateHighlightingEnabled = false;
+  private currentColoringMode: ColoringMode = 'spectral' as ColoringMode;
 
   // FPS tracking
   private frameTimes: number[] = [];
@@ -254,6 +258,7 @@ export class WebGPUGraphRenderer {
   }
 
   setColoringMode(mode: ColoringMode): void {
+    this.currentColoringMode = mode;
     const nodeCount = this.graphStore.getNodeCount();
     let newColorData: Float32Array<ArrayBuffer>;
 
@@ -268,26 +273,24 @@ export class WebGPUGraphRenderer {
         }
         break;
       }
-      case ColoringMode.DistanceToGoalHighlighted: {
-        const distances = this.graphStore.getDistancesToGoal();
-        const endStateIndices = this.graphStore.getEndStateIndices();
-        if (distances) {
-          newColorData = generateDistanceToGoalHighlightedColors(distances, nodeCount, endStateIndices);
-        } else {
-          console.warn('Distance data not available, falling back to spectral coloring');
-          newColorData = generateSpectralColors(nodeCount);
-        }
-        break;
-      }
       case ColoringMode.Spectral:
       default:
         newColorData = generateSpectralColors(nodeCount);
         break;
     }
 
+    // Apply highlighting if enabled
+    let finalColors = newColorData;
+    if (this.endStateHighlightingEnabled) {
+      const endStateIndices = this.graphStore.getEndStateIndices();
+      if (endStateIndices && endStateIndices.size > 0) {
+        finalColors = applyEndStateHighlighting(newColorData, endStateIndices);
+      }
+    }
+
     // Update GPU buffer with new colors
     if (this.buffers && this.buffers.nodeColorBuffer) {
-      updateNodeColorBuffer(this.device, this.buffers.nodeColorBuffer, newColorData);
+      updateNodeColorBuffer(this.device, this.buffers.nodeColorBuffer, finalColors as Float32Array<ArrayBuffer>);
     }
   }
 
@@ -303,6 +306,13 @@ export class WebGPUGraphRenderer {
     }
 
     return distances[nodeIndex];
+  }
+
+  setEndStateHighlighting(enabled: boolean): void {
+    this.endStateHighlightingEnabled = enabled;
+
+    // Re-apply the current coloring mode with the new highlighting state
+    this.setColoringMode(this.currentColoringMode);
   }
 
   selectNodeById(nodeId: string) {

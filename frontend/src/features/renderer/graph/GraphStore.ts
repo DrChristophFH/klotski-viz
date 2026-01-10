@@ -7,7 +7,7 @@ export class GraphStore {
   private edgePieceIds: Uint32Array | null = null;
   private nodeCount: number = 0;
   private edgeCount: number = 0;
-  private distancesToGoal: Float32Array | null = null;
+  private distancesToGoal: Float32Array<ArrayBuffer> | null = null;
   private goalNodeIndex: number = -1;
   private endStateIndices: Set<number> = new Set();
 
@@ -166,7 +166,7 @@ export class GraphStore {
     return Math.max(100, Math.cbrt(this.nodeCount) * 5);
   }
 
-  getDistancesToGoal(): Float32Array | null {
+  getDistancesToGoal(): Float32Array<ArrayBuffer> | null {
     return this.distancesToGoal;
   }
 

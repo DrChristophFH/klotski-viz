@@ -96,7 +96,7 @@ export function createNodeColorBuffer(device: GPUDevice, nodeCount: number): GPU
 export function updateNodeColorBuffer(
   device: GPUDevice,
   buffer: GPUBuffer,
-  colorData: Float32Array
+  colorData: Float32Array<ArrayBuffer>
 ): void {
   device.queue.writeBuffer(buffer, 0, colorData);
 }

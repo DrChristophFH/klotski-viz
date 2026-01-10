@@ -260,7 +260,7 @@ export class WebGPUGraphRenderer {
     this.coloringMode = mode;
 
     const nodeCount = this.graphStore.getNodeCount();
-    let newColorData: Float32Array;
+    let newColorData: Float32Array<ArrayBuffer>;
 
     switch (mode) {
       case ColoringMode.DistanceToGoal: {

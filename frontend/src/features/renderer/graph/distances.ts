@@ -52,7 +52,7 @@ export function computeDistancesToNearestGoal(
   nodeCount: number,
   edgeIndices: Uint32Array | null,
   edgeCount: number
-): Float32Array {
+): Float32Array<ArrayBuffer> {
   const distances = new Float32Array(nodeCount);
   distances.fill(Infinity);
 

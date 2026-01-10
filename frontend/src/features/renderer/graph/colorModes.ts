@@ -59,7 +59,7 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   return [r + m, g + m, b + m];
 }
 
-export function generateSpectralColors(nodeCount: number): Float32Array {
+export function generateSpectralColors(nodeCount: number): Float32Array<ArrayBuffer> {
   const colorData = new Float32Array(nodeCount * 4);
 
   for (let i = 0; i < nodeCount; i++) {
@@ -78,7 +78,7 @@ export function generateSpectralColors(nodeCount: number): Float32Array {
 export function generateDistanceToGoalColors(
   distances: Float32Array,
   nodeCount: number
-): Float32Array {
+): Float32Array<ArrayBuffer> {
   const colorData = new Float32Array(nodeCount * 4);
 
   // Find max distance for normalization (excluding Infinity)
@@ -121,10 +121,10 @@ export function generateDistanceToGoalColors(
 }
 
 export function generateDistanceToGoalHighlightedColors(
-  distances: Float32Array,
+  distances: Float32Array<ArrayBuffer>,
   nodeCount: number,
   endStateIndices: Set<number>
-): Float32Array {
+): Float32Array<ArrayBuffer> {
   const colorData = new Float32Array(nodeCount * 4);
 
   let maxDistance = 0;

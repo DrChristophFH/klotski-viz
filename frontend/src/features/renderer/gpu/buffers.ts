@@ -7,6 +7,8 @@ export interface GraphBuffers {
   simParamsBuffer: GPUBuffer;
   nodeColorBuffer: GPUBuffer;
   connectedNodesBuffer: GPUBuffer;
+  nodeInstanceIndexBufferOpaque: GPUBuffer;
+  nodeInstanceIndexBufferTransparent: GPUBuffer;
   nodeReadbackBuffer: GPUBuffer;
   pieceColorsBuffer: GPUBuffer;
   sphereVertexBuffer: GPUBuffer;
@@ -111,6 +113,30 @@ export function createConnectedNodesBuffer(device: GPUDevice, nodeCount: number)
   return buffer;
 }
 
+export function createNodeInstanceIndexBuffers(
+  device: GPUDevice,
+  nodeCount: number
+): { opaqueBuffer: GPUBuffer; transparentBuffer: GPUBuffer } {
+  const size = Math.max(1, nodeCount) * 4;
+
+  const opaqueBuffer = device.createBuffer({
+    size,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  });
+
+  const transparentBuffer = device.createBuffer({
+    size,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  });
+
+  // Default: all nodes are drawn in the opaque pass, none in transparent.
+  const allIndices = new Uint32Array(nodeCount);
+  for (let i = 0; i < nodeCount; i++) allIndices[i] = i;
+  device.queue.writeBuffer(opaqueBuffer, 0, allIndices);
+
+  return { opaqueBuffer, transparentBuffer };
+}
+
 export function createPieceColorsBuffer(device: GPUDevice, pieceColors: [number, number, number][]): GPUBuffer {
   const pieceColorData = new Float32Array(10 * 4);
   for (let i = 0; i < 10; i++) {
@@ -151,6 +177,8 @@ export function destroyBuffers(buffers: Partial<GraphBuffers>) {
   if (buffers.simParamsBuffer) buffers.simParamsBuffer.destroy();
   if (buffers.nodeColorBuffer) buffers.nodeColorBuffer.destroy();
   if (buffers.connectedNodesBuffer) buffers.connectedNodesBuffer.destroy();
+  if (buffers.nodeInstanceIndexBufferOpaque) buffers.nodeInstanceIndexBufferOpaque.destroy();
+  if (buffers.nodeInstanceIndexBufferTransparent) buffers.nodeInstanceIndexBufferTransparent.destroy();
   if (buffers.nodeReadbackBuffer) buffers.nodeReadbackBuffer.destroy();
   if (buffers.pieceColorsBuffer) buffers.pieceColorsBuffer.destroy();
   if (buffers.sphereVertexBuffer) buffers.sphereVertexBuffer.destroy();

@@ -7,8 +7,8 @@ export function updateConnectedNodes(
   pieceColorMapping: Map<number, number>,
   device: GPUDevice,
   connectedNodesBuffer: GPUBuffer
-) {
-  if (!edgeIndices || !edgePieceIds || !connectedNodesBuffer || !device) return;
+): Uint32Array | null {
+  if (!edgeIndices || !edgePieceIds || !connectedNodesBuffer || !device) return null;
 
   // Create array with 0 for all nodes
   // Value encoding: 0 = not connected, 1 = selected node, 2+ = connected with color_index = value - 2
@@ -47,4 +47,6 @@ export function updateConnectedNodes(
 
   // Upload to GPU
   device.queue.writeBuffer(connectedNodesBuffer, 0, connectedData);
+
+  return connectedData;
 }

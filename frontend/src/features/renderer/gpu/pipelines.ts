@@ -1,6 +1,7 @@
 export interface Pipelines {
   computePipeline: GPUComputePipeline;
-  nodeRenderPipeline: GPURenderPipeline;
+  nodeRenderPipelineOpaque: GPURenderPipeline;
+  nodeRenderPipelineTransparent: GPURenderPipeline;
   edgeRenderPipeline: GPURenderPipeline;
   pickingPipeline: GPURenderPipeline;
 }
@@ -26,12 +27,12 @@ export async function createPipelines(
     },
   });
 
-  // Render pipeline for nodes
+  // Render pipeline for nodes (opaque pass - selected/connected nodes)
   const nodeModule = device.createShaderModule({
     code: nodeShaderSource,
   });
 
-  const nodeRenderPipeline = device.createRenderPipeline({
+  const nodeRenderPipelineOpaque = device.createRenderPipeline({
     layout: 'auto',
     vertex: {
       module: nodeModule,
@@ -58,10 +59,56 @@ export async function createPipelines(
     },
     primitive: {
       topology: 'triangle-list',
-      cullMode: 'none',
+      cullMode: 'back',
+      frontFace: 'ccw',
     },
     depthStencil: {
       depthWriteEnabled: true,
+      depthCompare: 'less',
+      format: 'depth24plus',
+    },
+  });
+
+  // Create explicit pipeline layout from opaque pipeline for sharing
+  const nodeRenderPipelineLayout = device.createPipelineLayout({
+    bindGroupLayouts: [nodeRenderPipelineOpaque.getBindGroupLayout(0)],
+  });
+
+  // Render pipeline for nodes (transparent pass - non-selected nodes)
+  // Does NOT write to depth buffer to allow proper blending
+  // Uses same layout as opaque pipeline so they can share bind groups
+  const nodeRenderPipelineTransparent = device.createRenderPipeline({
+    layout: nodeRenderPipelineLayout,
+    vertex: {
+      module: nodeModule,
+      entryPoint: 'vs_main',
+    },
+    fragment: {
+      module: nodeModule,
+      entryPoint: 'fs_main_transparent',
+      targets: [{
+        format: format,
+        blend: {
+          color: {
+            srcFactor: 'src-alpha',
+            dstFactor: 'one-minus-src-alpha',
+            operation: 'add',
+          },
+          alpha: {
+            srcFactor: 'one',
+            dstFactor: 'one-minus-src-alpha',
+            operation: 'add',
+          },
+        },
+      }],
+    },
+    primitive: {
+      topology: 'triangle-list',
+      cullMode: 'back',
+      frontFace: 'ccw',
+    },
+    depthStencil: {
+      depthWriteEnabled: false,  // Transparent pass doesn't write to depth
       depthCompare: 'less',
       format: 'depth24plus',
     },
@@ -137,5 +184,5 @@ export async function createPipelines(
     },
   });
 
-  return { computePipeline, nodeRenderPipeline, edgeRenderPipeline, pickingPipeline };
+  return { computePipeline, nodeRenderPipelineOpaque, nodeRenderPipelineTransparent, edgeRenderPipeline, pickingPipeline };
 }

@@ -14,6 +14,7 @@ import {
   createSimParamsBuffer,
   createNodeColorBuffer,
   createConnectedNodesBuffer,
+  createNodeInstanceIndexBuffers,
   createPieceColorsBuffer,
   createSphereVertexBuffer,
 
@@ -61,6 +62,10 @@ export class WebGPUGraphRenderer {
   private animationFrameId: number | null = null;
   private pausedAtFrame = 0;
   private frameCount = 0;
+
+  // Node instance list state (opaque/transparent passes)
+  private opaqueNodeInstanceCount = 0;
+  private transparentNodeInstanceCount = 0;
 
   // Input state
   private inputState: InputState;
@@ -191,8 +196,8 @@ export class WebGPUGraphRenderer {
   private selectNode(index: number) {
     this.selectedNodeIndex = index;
 
-    // Update connected nodes buffer for highlighting
-    updateConnectedNodes(
+    // Update connected nodes buffer for highlighting and rebuild instance lists
+    const connectedData = updateConnectedNodes(
       index,
       this.graphStore.getNodeCount(),
       this.graphStore.getEdgeIndices(),
@@ -202,6 +207,8 @@ export class WebGPUGraphRenderer {
       this.device,
       this.buffers.connectedNodesBuffer
     );
+
+    this.updateNodeInstanceLists(connectedData);
 
     if (this.onNodeSelect) {
       if (index >= 0) {
@@ -246,7 +253,7 @@ export class WebGPUGraphRenderer {
       this.selectedNodeIndex = index;
 
       // Update connected nodes for highlighting
-      updateConnectedNodes(
+      const connectedData = updateConnectedNodes(
         index,
         this.graphStore.getNodeCount(),
         this.graphStore.getEdgeIndices(),
@@ -256,6 +263,8 @@ export class WebGPUGraphRenderer {
         this.device,
         this.buffers.connectedNodesBuffer
       );
+
+      this.updateNodeInstanceLists(connectedData);
 
       // Focus camera on node
       const nodePositions = this.nodeReadback.getNodePositions();
@@ -267,7 +276,7 @@ export class WebGPUGraphRenderer {
       }
     } else {
       this.selectedNodeIndex = -1;
-      updateConnectedNodes(
+      const connectedData = updateConnectedNodes(
         -1,
         this.graphStore.getNodeCount(),
         this.graphStore.getEdgeIndices(),
@@ -277,6 +286,7 @@ export class WebGPUGraphRenderer {
         this.device,
         this.buffers.connectedNodesBuffer
       );
+      this.updateNodeInstanceLists(connectedData);
       if (this.cameraController.getOrbitTarget()) {
         this.cameraController.exitOrbitMode();
       }
@@ -365,10 +375,57 @@ export class WebGPUGraphRenderer {
     // Create color and selection buffers
     this.buffers.nodeColorBuffer = createNodeColorBuffer(this.device, this.graphStore.getNodeCount());
     this.buffers.connectedNodesBuffer = createConnectedNodesBuffer(this.device, this.graphStore.getNodeCount());
+    const instanceIndexBuffers = createNodeInstanceIndexBuffers(this.device, this.graphStore.getNodeCount());
+    this.buffers.nodeInstanceIndexBufferOpaque = instanceIndexBuffers.opaqueBuffer;
+    this.buffers.nodeInstanceIndexBufferTransparent = instanceIndexBuffers.transparentBuffer;
     this.buffers.pieceColorsBuffer = createPieceColorsBuffer(this.device, PIECE_COLORS);
+
+    // Default: all nodes rendered in opaque pass
+    this.opaqueNodeInstanceCount = this.graphStore.getNodeCount();
+    this.transparentNodeInstanceCount = 0;
 
     // Create bind groups
     this.bindGroups = createBindGroups(this.device, this.pipelines, this.buffers);
+  }
+
+  private updateNodeInstanceLists(connectedData: Uint32Array | null) {
+    const nodeCount = this.graphStore.getNodeCount();
+    if (!this.device || !this.buffers?.nodeInstanceIndexBufferOpaque || !this.buffers?.nodeInstanceIndexBufferTransparent) {
+      return;
+    }
+
+    // No selection: render all nodes in opaque pass.
+    if (this.selectedNodeIndex < 0 || !connectedData) {
+      const all = new Uint32Array(nodeCount);
+      for (let i = 0; i < nodeCount; i++) all[i] = i;
+      this.device.queue.writeBuffer(this.buffers.nodeInstanceIndexBufferOpaque, 0, all);
+      this.opaqueNodeInstanceCount = nodeCount;
+      this.transparentNodeInstanceCount = 0;
+      return;
+    }
+
+    // Selection active: split selected/connected (opaque) vs others (transparent)
+    let opaqueCount = 0;
+    let transparentCount = 0;
+    for (let i = 0; i < nodeCount; i++) {
+      if (connectedData[i] > 0) opaqueCount++;
+      else transparentCount++;
+    }
+
+    const opaqueIndices = new Uint32Array(opaqueCount);
+    const transparentIndices = new Uint32Array(transparentCount);
+    let oi = 0;
+    let ti = 0;
+
+    for (let i = 0; i < nodeCount; i++) {
+      if (connectedData[i] > 0) opaqueIndices[oi++] = i;
+      else transparentIndices[ti++] = i;
+    }
+
+    this.device.queue.writeBuffer(this.buffers.nodeInstanceIndexBufferOpaque, 0, opaqueIndices);
+    this.device.queue.writeBuffer(this.buffers.nodeInstanceIndexBufferTransparent, 0, transparentIndices);
+    this.opaqueNodeInstanceCount = opaqueCount;
+    this.transparentNodeInstanceCount = transparentCount;
   }
 
   private frame = () => {
@@ -504,14 +561,35 @@ export class WebGPUGraphRenderer {
       },
     });
 
-    const nodeBindGroup = this.pingPong === 0 ? this.bindGroups.nodeRenderBindGroupA : this.bindGroups.nodeRenderBindGroupB;
+    const nodeBindGroupOpaque = this.pingPong === 0 ? this.bindGroups.nodeRenderBindGroupOpaqueA : this.bindGroups.nodeRenderBindGroupOpaqueB;
+    const nodeBindGroupTransparent = this.pingPong === 0 ? this.bindGroups.nodeRenderBindGroupTransparentA : this.bindGroups.nodeRenderBindGroupTransparentB;
     const edgeBindGroup = this.pingPong === 0 ? this.bindGroups.edgeRenderBindGroupA : this.bindGroups.edgeRenderBindGroupB;
 
     // Draw edges first (behind nodes)
     this.edgeRenderer.draw(renderPass, this.pipelines.edgeRenderPipeline, edgeBindGroup, this.graphStore.getEdgeCount());
 
-    // Draw nodes
-    this.nodeRenderer.draw(renderPass, this.pipelines.nodeRenderPipeline, nodeBindGroup, this.sphereVertexCount, this.graphStore.getNodeCount());
+    // Draw nodes - use 2-pass rendering when a node is selected for proper transparency
+    if (this.selectedNodeIndex >= 0) {
+      this.nodeRenderer.drawTwoPass(
+        renderPass,
+        this.pipelines.nodeRenderPipelineOpaque,
+        this.pipelines.nodeRenderPipelineTransparent,
+        this.sphereVertexCount,
+        nodeBindGroupOpaque,
+        this.opaqueNodeInstanceCount,
+        nodeBindGroupTransparent,
+        this.transparentNodeInstanceCount
+      );
+    } else {
+      // Single pass when nothing is selected (all nodes are opaque)
+      this.nodeRenderer.draw(
+        renderPass,
+        this.pipelines.nodeRenderPipelineOpaque,
+        nodeBindGroupOpaque,
+        this.sphereVertexCount,
+        this.opaqueNodeInstanceCount
+      );
+    }
 
     renderPass.end();
 

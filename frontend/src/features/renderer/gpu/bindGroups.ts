@@ -4,8 +4,10 @@ import type { Pipelines } from './pipelines';
 export interface BindGroups {
   computeBindGroupA: GPUBindGroup;
   computeBindGroupB: GPUBindGroup;
-  nodeRenderBindGroupA: GPUBindGroup;
-  nodeRenderBindGroupB: GPUBindGroup;
+  nodeRenderBindGroupOpaqueA: GPUBindGroup;
+  nodeRenderBindGroupOpaqueB: GPUBindGroup;
+  nodeRenderBindGroupTransparentA: GPUBindGroup;
+  nodeRenderBindGroupTransparentB: GPUBindGroup;
   edgeRenderBindGroupA: GPUBindGroup;
   edgeRenderBindGroupB: GPUBindGroup;
   pickingBindGroupA: GPUBindGroup;
@@ -38,9 +40,9 @@ export function createBindGroups(
     ],
   });
 
-  // Node render bind groups (use layout from node pipeline)
-  const nodeRenderBindGroupA = device.createBindGroup({
-    layout: pipelines.nodeRenderPipeline.getBindGroupLayout(0),
+  // Node render bind groups (use layout from opaque node pipeline - both pipelines share same layout)
+  const nodeRenderBindGroupOpaqueA = device.createBindGroup({
+    layout: pipelines.nodeRenderPipelineOpaque.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },
       { binding: 1, resource: { buffer: buffers.nodeBufferA } },
@@ -48,11 +50,12 @@ export function createBindGroups(
       { binding: 3, resource: { buffer: buffers.sphereVertexBuffer } },
       { binding: 4, resource: { buffer: buffers.connectedNodesBuffer } },
       { binding: 5, resource: { buffer: buffers.pieceColorsBuffer } },
+      { binding: 6, resource: { buffer: buffers.nodeInstanceIndexBufferOpaque } },
     ],
   });
 
-  const nodeRenderBindGroupB = device.createBindGroup({
-    layout: pipelines.nodeRenderPipeline.getBindGroupLayout(0),
+  const nodeRenderBindGroupOpaqueB = device.createBindGroup({
+    layout: pipelines.nodeRenderPipelineOpaque.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },
       { binding: 1, resource: { buffer: buffers.nodeBufferB } },
@@ -60,6 +63,33 @@ export function createBindGroups(
       { binding: 3, resource: { buffer: buffers.sphereVertexBuffer } },
       { binding: 4, resource: { buffer: buffers.connectedNodesBuffer } },
       { binding: 5, resource: { buffer: buffers.pieceColorsBuffer } },
+      { binding: 6, resource: { buffer: buffers.nodeInstanceIndexBufferOpaque } },
+    ],
+  });
+
+  const nodeRenderBindGroupTransparentA = device.createBindGroup({
+    layout: pipelines.nodeRenderPipelineOpaque.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: buffers.uniformBuffer } },
+      { binding: 1, resource: { buffer: buffers.nodeBufferA } },
+      { binding: 2, resource: { buffer: buffers.nodeColorBuffer } },
+      { binding: 3, resource: { buffer: buffers.sphereVertexBuffer } },
+      { binding: 4, resource: { buffer: buffers.connectedNodesBuffer } },
+      { binding: 5, resource: { buffer: buffers.pieceColorsBuffer } },
+      { binding: 6, resource: { buffer: buffers.nodeInstanceIndexBufferTransparent } },
+    ],
+  });
+
+  const nodeRenderBindGroupTransparentB = device.createBindGroup({
+    layout: pipelines.nodeRenderPipelineOpaque.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: buffers.uniformBuffer } },
+      { binding: 1, resource: { buffer: buffers.nodeBufferB } },
+      { binding: 2, resource: { buffer: buffers.nodeColorBuffer } },
+      { binding: 3, resource: { buffer: buffers.sphereVertexBuffer } },
+      { binding: 4, resource: { buffer: buffers.connectedNodesBuffer } },
+      { binding: 5, resource: { buffer: buffers.pieceColorsBuffer } },
+      { binding: 6, resource: { buffer: buffers.nodeInstanceIndexBufferTransparent } },
     ],
   });
 
@@ -104,8 +134,10 @@ export function createBindGroups(
   return {
     computeBindGroupA,
     computeBindGroupB,
-    nodeRenderBindGroupA,
-    nodeRenderBindGroupB,
+    nodeRenderBindGroupOpaqueA,
+    nodeRenderBindGroupOpaqueB,
+    nodeRenderBindGroupTransparentA,
+    nodeRenderBindGroupTransparentB,
     edgeRenderBindGroupA,
     edgeRenderBindGroupB,
     pickingBindGroupA,

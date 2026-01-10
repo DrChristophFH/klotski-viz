@@ -21,6 +21,7 @@ struct Node {
 @group(0) @binding(3) var<storage, read> sphere_vertices: array<vec4<f32>>;
 @group(0) @binding(4) var<storage, read> connected_nodes: array<u32>; // 0=not connected, 1=selected, 2+=piece_id+2
 @group(0) @binding(5) var<storage, read> piece_colors: array<vec4<f32>>; // 10 piece colors
+@group(0) @binding(6) var<storage, read> instance_indices: array<u32>; // instance -> node index mapping
 
 struct NodeVertexOutput {
     @builtin(position) position: vec4<f32>,
@@ -37,14 +38,16 @@ fn vs_main(
     @builtin(instance_index) instance_idx: u32,
 ) -> NodeVertexOutput {
     var output: NodeVertexOutput;
+
+    let node_idx = instance_indices[instance_idx];
     
     // Check if this node is selected or connected to selected
-    let is_selected = u32(i32(instance_idx) == uniforms.selected_node);
+    let is_selected = u32(i32(node_idx) == uniforms.selected_node);
     var connection_state = 0u;
     
     // Check connection state (0 = not connected, 1 = selected, 2+ = piece_id + 2)
-    if (uniforms.selected_node >= 0 && instance_idx < arrayLength(&connected_nodes)) {
-        connection_state = connected_nodes[instance_idx];
+    if (uniforms.selected_node >= 0 && node_idx < arrayLength(&connected_nodes)) {
+        connection_state = connected_nodes[node_idx];
     }
     
     // Get sphere vertex from buffer
@@ -62,12 +65,12 @@ fn vs_main(
     }
     
     // Scale and translate to node position
-    let node_pos = nodes[instance_idx].position.xyz;
+    let node_pos = nodes[node_idx].position.xyz;
     let world_pos = node_pos + local_pos * size;
     
     output.position = uniforms.view_proj * vec4<f32>(world_pos, 1.0);
     output.normal = normal;
-    output.color = node_colors[instance_idx].rgb;
+    output.color = node_colors[node_idx].rgb;
     output.world_pos = world_pos;
     output.is_selected = is_selected;
     output.connection_state = connection_state;
@@ -75,9 +78,9 @@ fn vs_main(
     return output;
 }
 
+// Fragment shader for OPAQUE pass - only renders selected/connected nodes
 @fragment
 fn fs_main(input: NodeVertexOutput) -> @location(0) vec4<f32> {
-    // Use the color directly without lighting
     var final_color = input.color;
     
     // Highlight selected node (golden glow)
@@ -87,11 +90,17 @@ fn fs_main(input: NodeVertexOutput) -> @location(0) vec4<f32> {
         // Connected nodes get colored by the piece that moves
         let piece_id = input.connection_state - 2u;
         final_color = piece_colors[piece_id].rgb;
-    } else if (uniforms.selected_node >= 0) {
-        // grayscale non-connected nodes when something is selected
-        let gray = dot(final_color, vec3<f32>(0.299, 0.587, 0.114));
-        final_color = vec3<f32>(gray);
     }
     
     return vec4<f32>(final_color, 1.0);
+}
+
+// Fragment shader for TRANSPARENT pass - only renders non-selected/non-connected nodes
+@fragment
+fn fs_main_transparent(input: NodeVertexOutput) -> @location(0) vec4<f32> {
+    // grayscale non-connected nodes when something is selected
+    let gray = dot(input.color, vec3<f32>(0.299, 0.587, 0.114));
+    let final_color = vec3<f32>(gray);
+    
+    return vec4<f32>(final_color, 0.5);
 }

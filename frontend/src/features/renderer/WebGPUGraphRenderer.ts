@@ -86,9 +86,6 @@ export class WebGPUGraphRenderer {
   private lastFpsUpdate = 0;
   private currentFps = 0;
 
-  // Coloring mode
-  private coloringMode: ColoringMode = ColoringMode.Spectral;   // Default mode
-
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.inputState = createInputState();
@@ -257,8 +254,6 @@ export class WebGPUGraphRenderer {
   }
 
   setColoringMode(mode: ColoringMode): void {
-    this.coloringMode = mode;
-
     const nodeCount = this.graphStore.getNodeCount();
     let newColorData: Float32Array<ArrayBuffer>;
 

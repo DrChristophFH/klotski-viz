@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import WebGPUGraph from "./features/renderer/WebGPUGraph";
 import type { WebGPUGraphRef } from "./features/renderer/WebGPUGraph";
 import { ColoringMode } from "./features/renderer/graph/colorModes";
@@ -63,6 +63,13 @@ function App() {
   const [pieceColorMapping, setPieceColorMapping] = useState<
     Map<number, number>
   >(new Map());
+
+  // Auto-solve state
+  const [autoSolveActive, setAutoSolveActive] = useState(false);
+  const [autoSolvePath, setAutoSolvePath] = useState<string[]>([]);
+  const [autoSolveIndex, setAutoSolveIndex] = useState(0);
+  const [autoSolveSpeed, setAutoSolveSpeed] = useState(1000); // milliseconds per step (1x = 2000ms, 2x = 1000ms, etc.)
+  const autoSolveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Get the current selected node's data
   const selectedNode = selectedNodeId
@@ -202,6 +209,74 @@ function App() {
     []
   );
 
+  // Auto-solve advancement effect
+  useEffect(() => {
+    if (!autoSolveActive || autoSolvePath.length === 0) {
+      if (autoSolveIntervalRef.current) {
+        clearInterval(autoSolveIntervalRef.current);
+        autoSolveIntervalRef.current = null;
+      }
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setAutoSolveIndex((prevIndex) => {
+        const nextIndex = prevIndex + 1;
+        if (nextIndex >= autoSolvePath.length) {
+          // Reached the end
+          setAutoSolveActive(false);
+          return prevIndex;
+        }
+        // Select the next node in the path
+        const nextNodeId = autoSolvePath[nextIndex];
+        if (graphRef) {
+          graphRef.selectNodeById(nextNodeId);
+          setSelectedNodeId(nextNodeId);
+        }
+        return nextIndex;
+      });
+    }, autoSolveSpeed);
+
+    autoSolveIntervalRef.current = interval;
+
+    return () => {
+      if (autoSolveIntervalRef.current) {
+        clearInterval(autoSolveIntervalRef.current);
+      }
+    };
+  }, [autoSolveActive, autoSolvePath, autoSolveSpeed, graphRef]);
+
+  // Start auto-solve function
+  const handleStartAutoSolve = useCallback(() => {
+    if (!selectedNodeId || !graphRef) return;
+
+    const path = graphRef.getCurrentPath();
+    if (path.length === 0) return;
+
+    setAutoSolvePath(path);
+    setAutoSolveIndex(0);
+    setAutoSolveActive(true);
+  }, [selectedNodeId, graphRef]);
+
+  // Stop auto-solve function
+  const handleStopAutoSolve = useCallback(() => {
+    setAutoSolveActive(false);
+    setAutoSolveIndex(0);
+    setAutoSolvePath([]);
+  }, []);
+
+  // Stop auto-solve when node is deselected
+  useEffect(() => {
+    if (!selectedNodeId && autoSolveActive) {
+      // Stop animation when deselecting a node
+      setTimeout(() => {
+        setAutoSolveActive(false);
+        setAutoSolveIndex(0);
+        setAutoSolvePath([]);
+      }, 0);
+    }
+  }, [selectedNodeId, autoSolveActive]);
+
   if (loading) {
     return <LoadingMsg />;
   }
@@ -247,6 +322,14 @@ function App() {
             graphRef.setSolutionHighlighting(enabled);
           }
         }}
+        selectedNodeId={selectedNodeId}
+        autoSolveActive={autoSolveActive}
+        autoSolvePath={autoSolvePath}
+        autoSolveIndex={autoSolveIndex}
+        autoSolveSpeed={autoSolveSpeed}
+        onAutoSolveStart={handleStartAutoSolve}
+        onAutoSolveStop={handleStopAutoSolve}
+        onAutoSolveSpeedChange={setAutoSolveSpeed}
       />
       <GitHubLink />
 

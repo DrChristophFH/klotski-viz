@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ColoringMode } from "../renderer/graph/colorModes";
+import { AutoSolvePanel } from "./AutoSolvePanel";
 
 interface InfoPanelProps {
   metadata: {
@@ -14,6 +15,14 @@ interface InfoPanelProps {
   onEndStateHighlightingChange?: (enabled: boolean) => void;
   solutionHighlightingEnabled?: boolean;
   onSolutionHighlightingChange?: (enabled: boolean) => void;
+  selectedNodeId?: string | null;
+  autoSolveActive?: boolean;
+  autoSolvePath?: string[];
+  autoSolveIndex?: number;
+  autoSolveSpeed?: number;
+  onAutoSolveStart?: () => void;
+  onAutoSolveStop?: () => void;
+  onAutoSolveSpeedChange?: (speed: number) => void;
 }
 
 export function InfoPanel({
@@ -24,6 +33,14 @@ export function InfoPanel({
   onEndStateHighlightingChange,
   solutionHighlightingEnabled = true,
   onSolutionHighlightingChange,
+  selectedNodeId,
+  autoSolveActive = false,
+  autoSolvePath = [],
+  autoSolveIndex = 0,
+  autoSolveSpeed = 1000,
+  onAutoSolveStart,
+  onAutoSolveStop,
+  onAutoSolveSpeedChange,
 }: InfoPanelProps) {
   // Collapsible info panel state
   const [infoExpanded, setInfoExpanded] = useState(false);
@@ -185,6 +202,18 @@ export function InfoPanel({
               Go to Start State
             </button>
           </div>
+
+          {/* Auto-Solve Section */}
+          <AutoSolvePanel
+            selectedNodeId={selectedNodeId}
+            autoSolveActive={autoSolveActive}
+            autoSolvePath={autoSolvePath}
+            autoSolveIndex={autoSolveIndex}
+            autoSolveSpeed={autoSolveSpeed}
+            onAutoSolveStart={onAutoSolveStart}
+            onAutoSolveStop={onAutoSolveStop}
+            onAutoSolveSpeedChange={onAutoSolveSpeedChange}
+          />
         </>
       )}
     </div>

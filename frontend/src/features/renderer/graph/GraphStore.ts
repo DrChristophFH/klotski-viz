@@ -177,4 +177,13 @@ export class GraphStore {
   getGoalNodeIndex(): number {
     return this.goalNodeIndex;
   }
+
+  getNodeIdByIndex(index: number): string | undefined {
+    for (const [nodeId, nodeIndex] of this.nodeIdToIndex) {
+      if (nodeIndex === index) {
+        return nodeId;
+      }
+    }
+    return undefined;
+  }
 }

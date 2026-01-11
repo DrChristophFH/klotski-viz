@@ -315,6 +315,14 @@ export class WebGPUGraphRenderer {
     return distances[nodeIndex];
   }
 
+  getCurrentPath(): string[] {
+    return this.currentPath.map(nodeIndex => this.graphStore.getNodeIdByIndex(nodeIndex)).filter((id): id is string => id !== undefined);
+  }
+
+  getNodeIdByIndex(index: number): string | undefined {
+    return this.graphStore.getNodeIdByIndex(index);
+  }
+
   setEndStateHighlighting(enabled: boolean): void {
     this.endStateHighlightingEnabled = enabled;
 

@@ -89,7 +89,9 @@ export class WebGPUGraphRenderer {
   // Path highlighting state
   private currentPath: number[] = [];
   private solutionHighlightingEnabled = true;
-
+  // Animation speed (ms per step for auto-solve)
+  private currentAutoSolveSpeed: number = 1000;
+  private isAutoSolveMode: boolean = false;
   // FPS tracking
   private frameTimes: number[] = [];
   private lastFpsUpdate = 0;
@@ -323,6 +325,14 @@ export class WebGPUGraphRenderer {
     return this.graphStore.getNodeIdByIndex(index);
   }
 
+  setAutoSolveSpeed(speedMs: number): void {
+    this.currentAutoSolveSpeed = speedMs;
+  }
+
+  setAutoSolveMode(active: boolean): void {
+    this.isAutoSolveMode = active;
+  }
+
   setEndStateHighlighting(enabled: boolean): void {
     this.endStateHighlightingEnabled = enabled;
 
@@ -446,7 +456,7 @@ export class WebGPUGraphRenderer {
         const px = nodePositions[index * 8];
         const py = nodePositions[index * 8 + 1];
         const pz = nodePositions[index * 8 + 2];
-        this.cameraController.focusOnNode(new Float32Array([px, py, pz]));
+        this.cameraController.focusOnNode(new Float32Array([px, py, pz]), this.isAutoSolveMode ? this.currentAutoSolveSpeed : undefined);
       }
     } else {
       this.selectedNodeIndex = -1;

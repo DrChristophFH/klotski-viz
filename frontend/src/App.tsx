@@ -246,6 +246,13 @@ function App() {
     };
   }, [autoSolveActive, autoSolvePath, autoSolveSpeed, graphRef]);
 
+  // Sync auto solve speed with renderer for camera tween
+  useEffect(() => {
+    if (graphRef) {
+      graphRef.setAutoSolveSpeed(autoSolveSpeed);
+    }
+  }, [autoSolveSpeed, graphRef]);
+
   // Start auto-solve function
   const handleStartAutoSolve = useCallback(() => {
     if (!selectedNodeId || !graphRef) return;
@@ -256,6 +263,7 @@ function App() {
     setAutoSolvePath(path);
     setAutoSolveIndex(0);
     setAutoSolveActive(true);
+    graphRef.setAutoSolveMode(true);
   }, [selectedNodeId, graphRef]);
 
   // Stop auto-solve function
@@ -263,7 +271,10 @@ function App() {
     setAutoSolveActive(false);
     setAutoSolveIndex(0);
     setAutoSolvePath([]);
-  }, []);
+    if (graphRef) {
+      graphRef.setAutoSolveMode(false);
+    }
+  }, [graphRef]);
 
   // Stop auto-solve when node is deselected
   useEffect(() => {
@@ -273,9 +284,12 @@ function App() {
         setAutoSolveActive(false);
         setAutoSolveIndex(0);
         setAutoSolvePath([]);
+        if (graphRef) {
+          graphRef.setAutoSolveMode(false);
+        }
       }, 0);
     }
-  }, [selectedNodeId, autoSolveActive]);
+  }, [selectedNodeId, autoSolveActive, graphRef]);
 
   if (loading) {
     return <LoadingMsg />;

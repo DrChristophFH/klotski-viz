@@ -39,6 +39,8 @@ export interface WebGPUGraphRef {
   setSolutionHighlighting: (enabled: boolean) => void;
   getCurrentPath: () => string[];
   getNodeIdByIndex: (index: number) => string | undefined;
+  setAutoSolveSpeed: (speedMs: number) => void;
+  setAutoSolveMode: (active: boolean) => void;
 }
 
 export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
@@ -107,6 +109,12 @@ export const WebGPUGraph = forwardRef<WebGPUGraphRef, WebGPUGraphProps>(
         },
         getNodeIdByIndex: (index: number) => {
           return rendererRef.current?.getNodeIdByIndex(index);
+        },
+        setAutoSolveSpeed: (speedMs: number) => {
+          rendererRef.current?.setAutoSolveSpeed(speedMs);
+        },
+        setAutoSolveMode: (active: boolean) => {
+          rendererRef.current?.setAutoSolveMode(active);
         },
       }),
       []

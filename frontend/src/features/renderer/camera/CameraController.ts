@@ -302,7 +302,7 @@ export class CameraController {
     }
   }
 
-  focusOnNode(nodePosition: Float32Array) {
+  focusOnNode(nodePosition: Float32Array, tweenDuration: number = CAMERA_TWEEN_DURATION) {
     const newOrbitTarget = new Float32Array(nodePosition);
 
     // Calculate target camera position maintaining current viewing direction
@@ -351,7 +351,7 @@ export class CameraController {
       startOrbitTarget: startOrbitTarget,
       endOrbitTarget: newOrbitTarget,
       startTime: performance.now(),
-      duration: CAMERA_TWEEN_DURATION,
+      duration: tweenDuration,
     };
 
     // Don't set orbitTarget immediately - let the tween handle it

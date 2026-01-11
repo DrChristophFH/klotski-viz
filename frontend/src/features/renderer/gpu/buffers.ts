@@ -7,6 +7,7 @@ export interface GraphBuffers {
   simParamsBuffer: GPUBuffer;
   nodeColorBuffer: GPUBuffer;
   connectedNodesBuffer: GPUBuffer;
+  edgeHighlightingBuffer: GPUBuffer;
   nodeInstanceIndexBufferOpaque: GPUBuffer;
   nodeInstanceIndexBufferTransparent: GPUBuffer;
   nodeReadbackBuffer: GPUBuffer;
@@ -112,7 +113,17 @@ export function createConnectedNodesBuffer(device: GPUDevice, nodeCount: number)
 
   return buffer;
 }
+export function createEdgeHighlightingBuffer(device: GPUDevice, edgeCount: number): GPUBuffer {
+  const buffer = device.createBuffer({
+    size: edgeCount * 4,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  });
 
+  // Initialize with zeros
+  device.queue.writeBuffer(buffer, 0, new Uint32Array(edgeCount));
+
+  return buffer;
+}
 export function createNodeInstanceIndexBuffers(
   device: GPUDevice,
   nodeCount: number

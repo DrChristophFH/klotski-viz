@@ -18,11 +18,13 @@ struct Node {
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var<storage, read> nodes: array<Node>;
 @group(0) @binding(2) var<storage, read> edge_indices: array<vec2<u32>>;
+@group(0) @binding(3) var<storage, read> edge_highlighting: array<u32>; // 0 = not highlighted, 1 = path edge
 
 struct EdgeVertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) alpha: f32,
     @location(1) @interpolate(flat) is_connected: u32,
+    @location(2) @interpolate(flat) is_path: u32,
 }
 
 @vertex
@@ -44,6 +46,12 @@ fn vs_main(
             is_connected = 1u;
         }
     }
+
+    // Check if this is a path edge
+    var is_path = 0u;
+    if (instance_idx < arrayLength(&edge_highlighting)) {
+        is_path = edge_highlighting[instance_idx];
+    }
     
     // Interpolate between source and destination
     let t = f32(vertex_idx);
@@ -52,12 +60,18 @@ fn vs_main(
     output.position = uniforms.view_proj * vec4<f32>(pos, 1.0);
     output.alpha = select(0.3, 1.0, is_connected == 1u); // Dim non-connected edges when something is selected
     output.is_connected = is_connected;
+    output.is_path = is_path;
     
     return output;
 }
 
 @fragment
 fn fs_main(input: EdgeVertexOutput) -> @location(0) vec4<f32> {
+    // Path edges are always orange
+    if (input.is_path == 1u) {
+        return vec4<f32>(1.0, 0.65, 0.0, input.alpha);
+    }
+    
     if (input.is_connected == 1u) {
         // Highlighted edge - cyan/bright
         return vec4<f32>(0.2, 1.0, 1.0, input.alpha);

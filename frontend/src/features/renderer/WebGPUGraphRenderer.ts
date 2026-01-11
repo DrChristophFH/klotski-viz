@@ -17,7 +17,7 @@ import {
   createNodeInstanceIndexBuffers,
   createPieceColorsBuffer,
   createSphereVertexBuffer,
-
+  createEdgeHighlightingBuffer,
   destroyBuffers,
   type GraphBuffers,
   updateNodeColorBuffer,
@@ -27,7 +27,7 @@ import { createBindGroups, type BindGroups } from './gpu/bindGroups';
 import { createDepthTexture } from './gpu/depth';
 import { createSphereGeometry } from './geometry/icosphere';
 import { GraphStore } from './graph/GraphStore';
-import { updateConnectedNodes } from './graph/connectivity';
+import { updateConnectedEdges, updateConnectedNodes } from './graph/connectivity';
 import { findPathToNearestGoal } from './graph/distances';
 import { GPUPicking } from './interaction/picking';
 import { ForceSimulation } from './simulation/ForceSimulation';
@@ -355,6 +355,15 @@ export class WebGPUGraphRenderer {
   }
 
   selectNodeById(nodeId: string) {
+    // Update path edge highlighting
+    updateConnectedEdges(
+      this.currentPath,
+      this.graphStore.getEdgeIndices(),
+      this.graphStore.getEdgeCount(),
+      this.device,
+      this.buffers.edgeHighlightingBuffer
+    );
+
     const index = this.graphStore.getNodeIndex(nodeId);
     if (index !== undefined) {
       this.selectedNodeIndex = index;
@@ -484,6 +493,7 @@ export class WebGPUGraphRenderer {
     // Create color and selection buffers
     this.buffers.nodeColorBuffer = createNodeColorBuffer(this.device, this.graphStore.getNodeCount());
     this.buffers.connectedNodesBuffer = createConnectedNodesBuffer(this.device, this.graphStore.getNodeCount());
+    this.buffers.edgeHighlightingBuffer = createEdgeHighlightingBuffer(this.device, this.graphStore.getEdgeCount());
     const instanceIndexBuffers = createNodeInstanceIndexBuffers(this.device, this.graphStore.getNodeCount());
     this.buffers.nodeInstanceIndexBufferOpaque = instanceIndexBuffers.opaqueBuffer;
     this.buffers.nodeInstanceIndexBufferTransparent = instanceIndexBuffers.transparentBuffer;

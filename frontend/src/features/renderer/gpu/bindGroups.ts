@@ -100,6 +100,7 @@ export function createBindGroups(
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },
       { binding: 1, resource: { buffer: buffers.nodeBufferA } },
       { binding: 2, resource: { buffer: buffers.edgeIndexBuffer } },
+      { binding: 3, resource: { buffer: buffers.edgeHighlightingBuffer } },
     ],
   });
 
@@ -109,6 +110,7 @@ export function createBindGroups(
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },
       { binding: 1, resource: { buffer: buffers.nodeBufferB } },
       { binding: 2, resource: { buffer: buffers.edgeIndexBuffer } },
+      { binding: 3, resource: { buffer: buffers.edgeHighlightingBuffer } },
     ],
   });
 

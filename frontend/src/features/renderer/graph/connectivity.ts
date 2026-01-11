@@ -60,3 +60,34 @@ export function updateConnectedNodes(
 
   return connectedData;
 }
+
+export function updateConnectedEdges(
+  pathIndices: number[],
+  edgeIndices: Uint32Array | null,
+  edgeCount: number,
+  device: GPUDevice,
+  edgeHighlightBuffer: GPUBuffer
+): void {
+  if (!edgeIndices) return;
+
+  const highlightData = new Uint32Array(edgeCount);
+
+  // Mark edges that connect consecutive nodes in the path
+  for (let i = 0; i < edgeCount; i++) {
+    const source = edgeIndices[i * 2];
+    const target = edgeIndices[i * 2 + 1];
+
+    // Check if edge connects two consecutive path nodes
+    for (let j = 0; j < pathIndices.length - 1; j++) {
+      const pathNode1 = pathIndices[j];
+      const pathNode2 = pathIndices[j + 1];
+
+      if ((source === pathNode1 && target === pathNode2) || (source === pathNode2 && target === pathNode1)) {
+        highlightData[i] = 1; // Mark as path edge
+        break;
+      }
+    }
+  }
+
+  device.queue.writeBuffer(edgeHighlightBuffer, 0, highlightData);
+}

@@ -28,6 +28,7 @@ import { createDepthTexture } from './gpu/depth';
 import { createSphereGeometry } from './geometry/icosphere';
 import { GraphStore } from './graph/GraphStore';
 import { updateConnectedNodes } from './graph/connectivity';
+import { findPathToNearestGoal } from './graph/distances';
 import { GPUPicking } from './interaction/picking';
 import { ForceSimulation } from './simulation/ForceSimulation';
 import { NodeRenderer } from './render/NodeRenderer';
@@ -84,6 +85,9 @@ export class WebGPUGraphRenderer {
   // Coloring state
   private endStateHighlightingEnabled = false;
   private currentColoringMode: ColoringMode = 'spectral' as ColoringMode;
+
+  // Path highlighting state
+  private currentPath: number[] = [];
 
   // FPS tracking
   private frameTimes: number[] = [];
@@ -211,8 +215,26 @@ export class WebGPUGraphRenderer {
       this.graphStore.getEdgeCount(),
       this.pieceColorMapping,
       this.device,
-      this.buffers.connectedNodesBuffer
+      this.buffers.connectedNodesBuffer,
+      this.currentPath
     );
+
+    // If we have distances to goal, compute the path
+    if (index >= 0) {
+      const distances = this.graphStore.getDistancesToGoal();
+      if (distances) {
+        const pathToGoal = findPathToNearestGoal(
+          index,
+          distances,
+          this.graphStore.getEdgeIndices(),
+          this.graphStore.getEdgeCount()
+        );
+        this.currentPath = pathToGoal;
+      }
+    } else {
+      // No selection, clear path
+      this.currentPath = [];
+    }
 
     this.updateNodeInstanceLists(connectedData);
 
@@ -240,7 +262,8 @@ export class WebGPUGraphRenderer {
         this.graphStore.getEdgeCount(),
         this.pieceColorMapping,
         this.device,
-        this.buffers.connectedNodesBuffer
+        this.buffers.connectedNodesBuffer,
+        this.currentPath
       );
     }
   }
@@ -324,7 +347,8 @@ export class WebGPUGraphRenderer {
         this.graphStore.getEdgeCount(),
         this.pieceColorMapping,
         this.device,
-        this.buffers.connectedNodesBuffer
+        this.buffers.connectedNodesBuffer,
+        this.currentPath
       );
       this.updateNodeInstanceLists(connectedData);
     }
@@ -344,7 +368,8 @@ export class WebGPUGraphRenderer {
         this.graphStore.getEdgeCount(),
         this.pieceColorMapping,
         this.device,
-        this.buffers.connectedNodesBuffer
+        this.buffers.connectedNodesBuffer,
+        this.currentPath
       );
 
       this.updateNodeInstanceLists(connectedData);
@@ -367,7 +392,8 @@ export class WebGPUGraphRenderer {
         this.graphStore.getEdgeCount(),
         this.pieceColorMapping,
         this.device,
-        this.buffers.connectedNodesBuffer
+        this.buffers.connectedNodesBuffer,
+        this.currentPath
       );
       this.updateNodeInstanceLists(connectedData);
       if (this.cameraController.getOrbitTarget()) {

@@ -99,3 +99,78 @@ export function computeDistancesToNearestGoal(
 
   return distances;
 }
+
+/**
+ * Find the shortest path from sourceIndex to the nearest goal node.
+ * Uses distances and reconstructs the path by greedily moving to neighbors with lower distance.
+ */
+export function findPathToNearestGoal(
+  sourceIndex: number,
+  distances: Float32Array | null,
+  edgeIndices: Uint32Array | null,
+  edgeCount: number
+): number[] {
+  if (!distances || sourceIndex < 0 || sourceIndex >= distances.length) {
+    return [];
+  }
+
+  const path: number[] = [sourceIndex];
+
+  // If already at a goal (distance 0), return just the source
+  if (distances[sourceIndex] === 0) {
+    return path;
+  }
+
+  // If unreachable, return empty path
+  if (!isFinite(distances[sourceIndex])) {
+    return [];
+  }
+
+  if (!edgeIndices) {
+    return path;
+  }
+
+  // Build adjacency list
+  const adjacencyList: number[][] = Array.from({ length: distances.length }, () => []);
+  for (let i = 0; i < edgeCount; i++) {
+    const source = edgeIndices[i * 2];
+    const target = edgeIndices[i * 2 + 1];
+    adjacencyList[source].push(target);
+  }
+
+  // Greedily walk to neighbors with strictly decreasing distance
+  let current = sourceIndex;
+  const visited = new Set<number>();
+  visited.add(current);
+  const maxSteps = distances.length; // Prevent infinite loops
+
+  for (let step = 0; step < maxSteps; step++) {
+    const currentDist = distances[current];
+
+    // Found goal
+    if (currentDist === 0) {
+      break;
+    }
+
+    // Find next node with lower distance
+    let nextNode = -1;
+    let minDist = currentDist;
+
+    for (const neighbor of adjacencyList[current]) {
+      if (!visited.has(neighbor) && distances[neighbor] < minDist) {
+        minDist = distances[neighbor];
+        nextNode = neighbor;
+      }
+    }
+
+    if (nextNode === -1) {
+      break; // No improvement found, stuck
+    }
+
+    path.push(nextNode);
+    visited.add(nextNode);
+    current = nextNode;
+  }
+
+  return path;
+}

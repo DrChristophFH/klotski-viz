@@ -6,12 +6,13 @@ export function updateConnectedNodes(
   edgeCount: number,
   pieceColorMapping: Map<number, number>,
   device: GPUDevice,
-  connectedNodesBuffer: GPUBuffer
+  connectedNodesBuffer: GPUBuffer,
+  pathIndices?: number[]
 ): Uint32Array | null {
   if (!edgeIndices || !edgePieceIds || !connectedNodesBuffer || !device) return null;
 
   // Create array with 0 for all nodes
-  // Value encoding: 0 = not connected, 1 = selected node, 2+ = connected with color_index = value - 2
+  // Value encoding: 0 = not connected, 1 = selected node, 2 = path to goal, 3+ = connected with color_index = value - 3
   const connectedData = new Uint32Array(nodeCount);
 
   if (selectedIndex >= 0) {
@@ -39,9 +40,18 @@ export function updateConnectedNodes(
       }
     }
 
-    // Apply the connected pieces coloring
+    // Apply the connected pieces coloring (3+ for connected nodes)
     for (const [nodeIdx, colorIdx] of connectedNodesToPieces.entries()) {
-      connectedData[nodeIdx] = colorIdx + 2;
+      connectedData[nodeIdx] = colorIdx + 3;
+    }
+
+    // Mark path nodes if provided - these override regular connections
+    if (pathIndices && pathIndices.length > 0) {
+      for (const nodeIdx of pathIndices) {
+        if (nodeIdx >= 0 && nodeIdx < nodeCount && nodeIdx !== selectedIndex) {
+          connectedData[nodeIdx] = 2;
+        }
+      }
     }
   }
 

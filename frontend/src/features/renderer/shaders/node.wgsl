@@ -29,7 +29,7 @@ struct NodeVertexOutput {
     @location(1) color: vec3<f32>,
     @location(2) world_pos: vec3<f32>,
     @location(3) @interpolate(flat) is_selected: u32,
-    @location(4) @interpolate(flat) connection_state: u32, // 0=none, 1=selected, 2+=piece_id+2
+    @location(4) @interpolate(flat) connection_state: u32, // 0=none, 1=selected, 2=path to goal, 3+=piece_id+2
 }
 
 @vertex
@@ -45,7 +45,7 @@ fn vs_main(
     let is_selected = u32(i32(node_idx) == uniforms.selected_node);
     var connection_state = 0u;
     
-    // Check connection state (0 = not connected, 1 = selected, 2+ = piece_id + 2)
+    // Check connection state (0 = not connected, 1 = selected, 2 = path to goal, 3+ = piece_id + 3)
     if (uniforms.selected_node >= 0 && node_idx < arrayLength(&connected_nodes)) {
         connection_state = connected_nodes[node_idx];
     }
@@ -93,9 +93,12 @@ fn fs_main(input: NodeVertexOutput) -> @location(0) vec4<f32> {
     // Highlight selected node (golden glow)
     if (input.is_selected == 1u || input.connection_state == 1u) {
         final_color = vec3<f32>(1.0, 0.85, 0.2);
-    } else if (input.connection_state >= 2u) {
+    } else if (input.connection_state == 2u) {
+        // Path to goal: orange color
+        final_color = vec3<f32>(1.0, 0.65, 0.0);
+    } else if (input.connection_state >= 3u) {
         // Connected nodes get colored by the piece that moves
-        let piece_id = input.connection_state - 2u;
+        let piece_id = input.connection_state - 3u;
         final_color = piece_colors[piece_id].rgb;
     }
     

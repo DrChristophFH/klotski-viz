@@ -157,7 +157,6 @@ export function InfoPanel({
                 type="checkbox"
                 checked={solutionHighlightingEnabled}
                 onChange={(e) => {
-                  console.log('Solution highlighting checkbox changed:', e.target.checked);
                   onSolutionHighlightingChange?.(e.target.checked);
                 }}
                 style={{

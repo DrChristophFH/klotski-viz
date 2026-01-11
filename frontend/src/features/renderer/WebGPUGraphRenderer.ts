@@ -220,23 +220,6 @@ export class WebGPUGraphRenderer {
       this.currentPath
     );
 
-    // If we have distances to goal and solution highlighting is enabled, compute the path
-    if (index >= 0 && this.solutionHighlightingEnabled) {
-      const distances = this.graphStore.getDistancesToGoal();
-      if (distances) {
-        const pathToGoal = findPathToNearestGoal(
-          index,
-          distances,
-          this.graphStore.getEdgeIndices(),
-          this.graphStore.getEdgeCount()
-        );
-        this.currentPath = pathToGoal;
-      }
-    } else {
-      // No selection or highlighting disabled, clear path
-      this.currentPath = [];
-    }
-
     this.updateNodeInstanceLists(connectedData);
 
     if (this.onNodeSelect) {
@@ -401,6 +384,25 @@ export class WebGPUGraphRenderer {
   }
 
   selectNodeById(nodeId: string) {
+    // If we have distances to goal and solution highlighting is enabled, compute the path
+    console.log('selectNodeById called with', nodeId);
+    console.log('solutionHighlightingEnabled:', this.solutionHighlightingEnabled);
+    if (this.solutionHighlightingEnabled) {
+      const distances = this.graphStore.getDistancesToGoal();
+      if (distances) {
+        const pathToGoal = findPathToNearestGoal(
+          this.selectedNodeIndex,
+          distances,
+          this.graphStore.getEdgeIndices(),
+          this.graphStore.getEdgeCount()
+        );
+        this.currentPath = pathToGoal;
+      }
+    } else {
+      // No selection or highlighting disabled, clear path
+      this.currentPath = [];
+    }
+
     // Update path edge highlighting
     updateConnectedEdges(
       this.selectedNodeIndex,

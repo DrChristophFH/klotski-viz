@@ -12,6 +12,8 @@ interface InfoPanelProps {
   onColoringModeChange?: (mode: ColoringMode) => void;
   endStateHighlightingEnabled?: boolean;
   onEndStateHighlightingChange?: (enabled: boolean) => void;
+  solutionHighlightingEnabled?: boolean;
+  onSolutionHighlightingChange?: (enabled: boolean) => void;
 }
 
 export function InfoPanel({
@@ -20,6 +22,8 @@ export function InfoPanel({
   onColoringModeChange,
   endStateHighlightingEnabled = false,
   onEndStateHighlightingChange,
+  solutionHighlightingEnabled = true,
+  onSolutionHighlightingChange,
 }: InfoPanelProps) {
   // Collapsible info panel state
   const [infoExpanded, setInfoExpanded] = useState(false);
@@ -147,6 +151,21 @@ export function InfoPanel({
                 }}
               />
               <span>Highlight End States (Red)</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", marginTop: "8px", fontSize: "12px", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={solutionHighlightingEnabled}
+                onChange={(e) => {
+                  console.log('Solution highlighting checkbox changed:', e.target.checked);
+                  onSolutionHighlightingChange?.(e.target.checked);
+                }}
+                style={{
+                  marginRight: "8px",
+                  cursor: "pointer",
+                }}
+              />
+              <span>Show Solution Path (Orange)</span>
             </label>
           </div>
           <div style={{ marginBottom: "15px" }}>

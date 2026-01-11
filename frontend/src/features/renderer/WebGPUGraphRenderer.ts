@@ -88,6 +88,7 @@ export class WebGPUGraphRenderer {
 
   // Path highlighting state
   private currentPath: number[] = [];
+  private solutionHighlightingEnabled = true;
 
   // FPS tracking
   private frameTimes: number[] = [];
@@ -219,8 +220,8 @@ export class WebGPUGraphRenderer {
       this.currentPath
     );
 
-    // If we have distances to goal, compute the path
-    if (index >= 0) {
+    // If we have distances to goal and solution highlighting is enabled, compute the path
+    if (index >= 0 && this.solutionHighlightingEnabled) {
       const distances = this.graphStore.getDistancesToGoal();
       if (distances) {
         const pathToGoal = findPathToNearestGoal(
@@ -232,7 +233,7 @@ export class WebGPUGraphRenderer {
         this.currentPath = pathToGoal;
       }
     } else {
-      // No selection, clear path
+      // No selection or highlighting disabled, clear path
       this.currentPath = [];
     }
 
@@ -352,6 +353,50 @@ export class WebGPUGraphRenderer {
       );
       this.updateNodeInstanceLists(connectedData);
     }
+  }
+
+  setSolutionHighlighting(enabled: boolean): void {
+    this.solutionHighlightingEnabled = enabled;
+
+    // If disabled, clear the path highlighting
+    if (!enabled) {
+      this.currentPath = [];
+    } else if (this.selectedNodeIndex >= 0) {
+      // If enabled and we have a selection, recompute the path
+      const distances = this.graphStore.getDistancesToGoal();
+      if (distances) {
+        const pathToGoal = findPathToNearestGoal(
+          this.selectedNodeIndex,
+          distances,
+          this.graphStore.getEdgeIndices(),
+          this.graphStore.getEdgeCount()
+        );
+        this.currentPath = pathToGoal;
+      }
+    }
+
+    // Update path edge highlighting
+    updateConnectedEdges(
+      this.currentPath,
+      this.graphStore.getEdgeIndices(),
+      this.graphStore.getEdgeCount(),
+      this.device,
+      this.buffers.edgeHighlightingBuffer
+    );
+    // Update connected nodes for highlighting
+    const connectedData = updateConnectedNodes(
+      this.selectedNodeIndex ?? -1,
+      this.graphStore.getNodeCount(),
+      this.graphStore.getEdgeIndices(),
+      this.graphStore.getEdgePieceIds(),
+      this.graphStore.getEdgeCount(),
+      this.pieceColorMapping,
+      this.device,
+      this.buffers.connectedNodesBuffer,
+      this.currentPath
+    );
+
+    this.updateNodeInstanceLists(connectedData);
   }
 
   selectNodeById(nodeId: string) {

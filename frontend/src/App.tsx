@@ -56,6 +56,9 @@ function App() {
   // End state highlighting toggle
   const [endStateHighlightingEnabled, setEndStateHighlightingEnabled] = useState(false);
 
+  // Solution highlighting toggle
+  const [solutionHighlightingEnabled, setSolutionHighlightingEnabled] = useState(true);
+
   // Piece color mapping for syncing puzzle colors with graph
   const [pieceColorMapping, setPieceColorMapping] = useState<
     Map<number, number>
@@ -235,6 +238,13 @@ function App() {
           setEndStateHighlightingEnabled(enabled);
           if (graphRef) {
             graphRef.setEndStateHighlighting(enabled);
+          }
+        }}
+        solutionHighlightingEnabled={solutionHighlightingEnabled}
+        onSolutionHighlightingChange={(enabled: boolean) => {
+          setSolutionHighlightingEnabled(enabled);
+          if (graphRef) {
+            graphRef.setSolutionHighlighting(enabled);
           }
         }}
       />

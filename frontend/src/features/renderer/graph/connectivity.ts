@@ -45,11 +45,14 @@ export function updateConnectedNodes(
       connectedData[nodeIdx] = colorIdx + 3;
     }
 
-    // Mark path nodes if provided - these override regular connections
+    // Mark path nodes if provided - but don't override neighbors
     if (pathIndices && pathIndices.length > 0) {
       for (const nodeIdx of pathIndices) {
         if (nodeIdx >= 0 && nodeIdx < nodeCount && nodeIdx !== selectedIndex) {
-          connectedData[nodeIdx] = 2;
+          // Only mark as path if it's not already marked as a neighbor
+          if (connectedData[nodeIdx] === 0) {
+            connectedData[nodeIdx] = 2;
+          }
         }
       }
     }
@@ -62,6 +65,7 @@ export function updateConnectedNodes(
 }
 
 export function updateConnectedEdges(
+  selectedIndex: number,
   pathIndices: number[],
   edgeIndices: Uint32Array | null,
   edgeCount: number,
@@ -83,6 +87,10 @@ export function updateConnectedEdges(
       const pathNode2 = pathIndices[j + 1];
 
       if ((source === pathNode1 && target === pathNode2) || (source === pathNode2 && target === pathNode1)) {
+        // Don't mark as path edge if it's a direct connection to the selected node
+        if (selectedIndex >= 0 && (source === selectedIndex || target === selectedIndex)) {
+          break;
+        }
         highlightData[i] = 1; // Mark as path edge
         break;
       }

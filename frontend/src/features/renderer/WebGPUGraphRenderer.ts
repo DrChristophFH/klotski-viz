@@ -377,6 +377,7 @@ export class WebGPUGraphRenderer {
 
     // Update path edge highlighting
     updateConnectedEdges(
+      this.selectedNodeIndex,
       this.currentPath,
       this.graphStore.getEdgeIndices(),
       this.graphStore.getEdgeCount(),
@@ -402,11 +403,12 @@ export class WebGPUGraphRenderer {
   selectNodeById(nodeId: string) {
     // Update path edge highlighting
     updateConnectedEdges(
+      this.selectedNodeIndex,
       this.currentPath,
       this.graphStore.getEdgeIndices(),
       this.graphStore.getEdgeCount(),
       this.device,
-      this.buffers.edgeHighlightingBuffer
+      this.buffers.edgeHighlightingBuffer,
     );
 
     const index = this.graphStore.getNodeIndex(nodeId);

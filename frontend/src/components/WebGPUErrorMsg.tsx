@@ -23,8 +23,10 @@ export function WebGPUErrorMsg({ webgpuError }: WebGPUErrorMsgProps) {
       </div>
       <div>{webgpuError}</div>
       <div style={{ marginTop: "20px", fontSize: "14px", opacity: 0.7 }}>
-        Please use a browser with WebGPU support (Chrome 113+, Edge 113+, or
-        Firefox with flags enabled)
+        Please use a browser with WebGPU support (Chrome 113+, Edge 113+, Firefox 141+, or Safari 26+)
+        <a href="https://github.com/gpuweb/gpuweb/wiki/Implementation-Status" target="_blank" rel="noopener noreferrer" style={{ color: "lightblue", marginLeft: "5px" }}>
+          (WebGPU Implementation Status)
+        </a>
       </div>
     </div>
   );

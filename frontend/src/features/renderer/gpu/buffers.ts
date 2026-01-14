@@ -13,6 +13,7 @@ export interface GraphBuffers {
   nodeReadbackBuffer: GPUBuffer;
   pieceColorsBuffer: GPUBuffer;
   sphereVertexBuffer: GPUBuffer;
+  billboardVertexBuffer: GPUBuffer;
 }
 
 import { generateSpectralColors } from '../graph/colorModes';
@@ -184,6 +185,18 @@ export function createPieceColorsBuffer(device: GPUDevice, pieceColors: [number,
 export function createSphereVertexBuffer(device: GPUDevice, vertexData: Float32Array<ArrayBuffer>): GPUBuffer {
   const buffer = device.createBuffer({
     label: 'Sphere Vertex Buffer',
+    size: vertexData.byteLength,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  });
+
+  device.queue.writeBuffer(buffer, 0, vertexData);
+
+  return buffer;
+}
+
+export function createBillboardVertexBuffer(device: GPUDevice, vertexData: Float32Array<ArrayBuffer>): GPUBuffer {
+  const buffer = device.createBuffer({
+    label: 'Billboard Vertex Buffer',
     size: vertexData.byteLength,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });

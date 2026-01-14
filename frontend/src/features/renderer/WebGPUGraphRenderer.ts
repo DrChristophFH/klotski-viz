@@ -17,6 +17,7 @@ import {
   createNodeInstanceIndexBuffers,
   createPieceColorsBuffer,
   createSphereVertexBuffer,
+  createBillboardVertexBuffer,
   createEdgeHighlightingBuffer,
   destroyBuffers,
   type GraphBuffers,
@@ -26,6 +27,7 @@ import { createPipelines, type Pipelines } from './gpu/pipelines';
 import { createBindGroups, type BindGroups } from './gpu/bindGroups';
 import { createDepthTexture } from './gpu/depth';
 import { createSphereGeometry } from './geometry/icosphere';
+import { createBillboardGeometry } from './geometry/billboard';
 import { GraphStore } from './graph/GraphStore';
 import { updateConnectedEdges, updateConnectedNodes } from './graph/connectivity';
 import { findPathToNearestGoal } from './graph/distances';
@@ -57,6 +59,7 @@ export class WebGPUGraphRenderer {
   private bindGroups!: BindGroups;
   private depthTexture!: GPUTexture;
   private sphereVertexCount = 0;
+  private billboardVertexCount = 0;
 
   // State
   private pingPong = 0;
@@ -508,8 +511,12 @@ export class WebGPUGraphRenderer {
     this.cameraController = new CameraController(camera);
 
     // Create sphere geometry
-    const sphereGeometry = createSphereGeometry(2); // 2 subdivisions = 80 triangles
+    const sphereGeometry = createSphereGeometry(1); // 0 subdivisions = 20 triangles
     this.sphereVertexCount = sphereGeometry.vertexCount;
+
+    // Create billboard geometry for picking
+    const billboardGeometry = createBillboardGeometry();
+    this.billboardVertexCount = billboardGeometry.vertexCount;
 
     // Create pipelines
     this.pipelines = await createPipelines(
@@ -529,6 +536,7 @@ export class WebGPUGraphRenderer {
       uniformBuffer: createUniformBuffer(this.device),
       simParamsBuffer: createSimParamsBuffer(this.device),
       sphereVertexBuffer: createSphereVertexBuffer(this.device, sphereGeometry.vertexData),
+      billboardVertexBuffer: createBillboardVertexBuffer(this.device, billboardGeometry.vertexData),
     } as GraphBuffers;
 
     // Initialize GPU picking
@@ -714,7 +722,7 @@ export class WebGPUGraphRenderer {
       commandEncoder,
       this.pipelines.pickingPipeline,
       pickingBindGroup,
-      this.sphereVertexCount,
+      this.billboardVertexCount,
       this.graphStore.getNodeCount()
     );
 

@@ -138,7 +138,7 @@ export class GPUPicking {
     commandEncoder: GPUCommandEncoder,
     pipeline: GPURenderPipeline,
     bindGroup: GPUBindGroup,
-    sphereVertexCount: number,
+    billboardVertexCount: number,
     nodeCount: number
   ) {
     const pickingPass = commandEncoder.beginRenderPass({
@@ -158,7 +158,7 @@ export class GPUPicking {
 
     pickingPass.setPipeline(pipeline);
     pickingPass.setBindGroup(0, bindGroup);
-    pickingPass.draw(sphereVertexCount, nodeCount, 0, 0);
+    pickingPass.draw(billboardVertexCount, nodeCount, 0, 0);
     pickingPass.end();
   }
 

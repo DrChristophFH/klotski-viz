@@ -1,4 +1,5 @@
 // Picking shader - renders node indices as colors for GPU-based picking
+// Uses billboard geometry for efficient rendering
 struct Uniforms {
   viewProjection: mat4x4<f32>,
   cameraPosition: vec3<f32>,
@@ -14,7 +15,7 @@ struct Node {
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var<storage, read> nodes: array<Node>;
-@group(0) @binding(2) var<storage, read> sphereVertices: array<vec4<f32>>;
+@group(0) @binding(2) var<storage, read> billboardVertices: array<vec4<f32>>;
 
 struct VertexOutput {
   @builtin(position) position: vec4<f32>,
@@ -28,19 +29,27 @@ fn vs_main(
 ) -> VertexOutput {
   var output: VertexOutput;
   
-  let node = nodes[instanceIndex];
-  let sphereVertex = sphereVertices[vertexIndex].xyz;
-  // Distance-based scaling
   let nodePos = nodes[instanceIndex].position.xyz;
   let cameraPos = uniforms.cameraPosition.xyz;
+  
+  // Distance-based scaling
   let dist = distance(nodePos, cameraPos);
-
   let scaleFactor = 1.0 + 0.0015 * dist;
   
-  // Scale and translate to node position
-  let worldPos = nodePos + sphereVertex * scaleFactor;
+  // Get billboard vertex in local space
+  let localVertex = billboardVertices[vertexIndex].xyz;
   
-  output.position = uniforms.viewProjection * vec4<f32>(worldPos, 1.0);
+  // Create camera-facing basis vectors
+  let forward = normalize(cameraPos - nodePos);
+  let worldUp = vec3<f32>(0.0, 1.0, 0.0);
+  let right = normalize(cross(worldUp, forward));
+  let up = cross(forward, right);
+  
+  // Transform billboard vertex to world space, facing camera
+  let billboardWorldPos = nodePos + 
+    (right * localVertex.x + up * localVertex.y) * scaleFactor;
+  
+  output.position = uniforms.viewProjection * vec4<f32>(billboardWorldPos, 1.0);
   output.nodeIndex = instanceIndex;
   
   return output;

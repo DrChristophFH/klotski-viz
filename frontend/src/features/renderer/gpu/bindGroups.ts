@@ -129,7 +129,7 @@ export function createBindGroups(
     entries: [
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },
       { binding: 1, resource: { buffer: buffers.nodeBufferA } },
-      { binding: 2, resource: { buffer: buffers.sphereVertexBuffer } },
+      { binding: 2, resource: { buffer: buffers.billboardVertexBuffer } },
     ],
   });
 
@@ -139,7 +139,7 @@ export function createBindGroups(
     entries: [
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },
       { binding: 1, resource: { buffer: buffers.nodeBufferB } },
-      { binding: 2, resource: { buffer: buffers.sphereVertexBuffer } },
+      { binding: 2, resource: { buffer: buffers.billboardVertexBuffer } },
     ],
   });
 

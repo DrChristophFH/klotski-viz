@@ -16,6 +16,7 @@ export async function createPipelines(
 ): Promise<Pipelines> {
   // Compute pipeline for force simulation
   const computeModule = device.createShaderModule({
+    label: 'ForceSim Compute Shader Module',
     code: forceShaderSource,
   });
 
@@ -25,14 +26,17 @@ export async function createPipelines(
       module: computeModule,
       entryPoint: 'main',
     },
+    label: 'ForceSim Compute Pipeline',
   });
 
   // Render pipeline for nodes (opaque pass - selected/connected nodes)
   const nodeModule = device.createShaderModule({
+    label: 'NodeRender Shader Module',
     code: nodeShaderSource,
   });
 
   const nodeRenderPipelineOpaque = device.createRenderPipeline({
+    label: 'NodeRender Opaque Pipeline',
     layout: 'auto',
     vertex: {
       module: nodeModule,
@@ -71,6 +75,7 @@ export async function createPipelines(
 
   // Create explicit pipeline layout from opaque pipeline for sharing
   const nodeRenderPipelineLayout = device.createPipelineLayout({
+    label: 'NodeRender Pipeline Layout',
     bindGroupLayouts: [nodeRenderPipelineOpaque.getBindGroupLayout(0)],
   });
 
@@ -78,6 +83,7 @@ export async function createPipelines(
   // Does NOT write to depth buffer to allow proper blending
   // Uses same layout as opaque pipeline so they can share bind groups
   const nodeRenderPipelineTransparent = device.createRenderPipeline({
+    label: 'NodeRender Transparent Pipeline',
     layout: nodeRenderPipelineLayout,
     vertex: {
       module: nodeModule,
@@ -116,10 +122,12 @@ export async function createPipelines(
 
   // Render pipeline for edges
   const edgeModule = device.createShaderModule({
+    label: 'EdgeRender Shader Module',
     code: edgeShaderSource,
   });
 
   const edgeRenderPipeline = device.createRenderPipeline({
+    label: 'EdgeRender Pipeline',
     layout: 'auto',
     vertex: {
       module: edgeModule,
@@ -157,10 +165,12 @@ export async function createPipelines(
 
   // Picking pipeline - renders node indices as colors
   const pickingModule = device.createShaderModule({
+    label: 'Picking Shader Module',
     code: pickingShaderSource,
   });
 
   const pickingPipeline = device.createRenderPipeline({
+    label: 'Picking Pipeline',
     layout: 'auto',
     vertex: {
       module: pickingModule,

@@ -21,6 +21,7 @@ export function createBindGroups(
 ): BindGroups {
   // Compute bind groups (ping-pong)
   const computeBindGroupA = device.createBindGroup({
+    label: 'Compute Bind Group A',
     layout: pipelines.computePipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.nodeBufferA } },
@@ -31,6 +32,7 @@ export function createBindGroups(
   });
 
   const computeBindGroupB = device.createBindGroup({
+    label: 'Compute Bind Group B',
     layout: pipelines.computePipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.nodeBufferB } },
@@ -42,6 +44,7 @@ export function createBindGroups(
 
   // Node render bind groups (use layout from opaque node pipeline - both pipelines share same layout)
   const nodeRenderBindGroupOpaqueA = device.createBindGroup({
+    label: 'Node Render Bind Group Opaque A',
     layout: pipelines.nodeRenderPipelineOpaque.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },
@@ -55,6 +58,7 @@ export function createBindGroups(
   });
 
   const nodeRenderBindGroupOpaqueB = device.createBindGroup({
+    label: 'Node Render Bind Group Opaque B',
     layout: pipelines.nodeRenderPipelineOpaque.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },
@@ -68,6 +72,7 @@ export function createBindGroups(
   });
 
   const nodeRenderBindGroupTransparentA = device.createBindGroup({
+    label: 'Node Render Bind Group Transparent A',
     layout: pipelines.nodeRenderPipelineOpaque.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },
@@ -81,6 +86,7 @@ export function createBindGroups(
   });
 
   const nodeRenderBindGroupTransparentB = device.createBindGroup({
+    label: 'Node Render Bind Group Transparent B',
     layout: pipelines.nodeRenderPipelineOpaque.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },
@@ -95,6 +101,7 @@ export function createBindGroups(
 
   // Edge render bind groups (use layout from edge pipeline)
   const edgeRenderBindGroupA = device.createBindGroup({
+    label: 'Edge Render Bind Group A',
     layout: pipelines.edgeRenderPipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },
@@ -105,6 +112,7 @@ export function createBindGroups(
   });
 
   const edgeRenderBindGroupB = device.createBindGroup({
+    label: 'Edge Render Bind Group B',
     layout: pipelines.edgeRenderPipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },
@@ -116,6 +124,7 @@ export function createBindGroups(
 
   // Picking bind groups (for GPU-based node picking)
   const pickingBindGroupA = device.createBindGroup({
+    label: 'Picking Bind Group A',
     layout: pipelines.pickingPipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },
@@ -125,6 +134,7 @@ export function createBindGroups(
   });
 
   const pickingBindGroupB = device.createBindGroup({
+    label: 'Picking Bind Group B',
     layout: pipelines.pickingPipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.uniformBuffer } },

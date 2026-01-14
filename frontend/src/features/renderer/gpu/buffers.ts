@@ -24,16 +24,19 @@ export function createNodeBuffers(
   const nodeBufferSize = nodeData.byteLength;
 
   const bufferA = device.createBuffer({
+    label: 'Node Buffer A',
     size: nodeBufferSize,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
   });
 
   const bufferB = device.createBuffer({
+    label: 'Node Buffer B',
     size: nodeBufferSize,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
   });
 
   const readbackBuffer = device.createBuffer({
+    label: 'Node Readback Buffer',
     size: nodeBufferSize,
     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
   });
@@ -50,11 +53,13 @@ export function createEdgeBuffers(
   edgeIndexData: Uint32Array<ArrayBuffer>
 ): { edgeBuffer: GPUBuffer; edgeIndexBuffer: GPUBuffer } {
   const edgeBuffer = device.createBuffer({
+    label: 'Edge Buffer',
     size: edgeData.byteLength,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
 
   const edgeIndexBuffer = device.createBuffer({
+    label: 'Edge Index Buffer',
     size: edgeIndexData.byteLength,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
@@ -67,6 +72,7 @@ export function createEdgeBuffers(
 
 export function createUniformBuffer(device: GPUDevice): GPUBuffer {
   return device.createBuffer({
+    label: 'Uniform Buffer',
     size: 64 + 16 + 16, // mat4 + vec4 + params
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
@@ -76,6 +82,7 @@ export function createSimParamsBuffer(device: GPUDevice): GPUBuffer {
   // SimParams struct in WGSL is 64 bytes due to alignment:
   // 9 x f32/u32 = 36 bytes + vec3 padding (12 bytes) + alignment padding = 64 bytes
   return device.createBuffer({
+    label: 'Simulation Parameters Buffer',
     size: 64,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
@@ -85,6 +92,7 @@ export function createNodeColorBuffer(device: GPUDevice, nodeCount: number): GPU
   const colorData = generateSpectralColors(nodeCount);
 
   const buffer = device.createBuffer({
+    label: 'Node Color Buffer',
     size: colorData.byteLength,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
@@ -104,6 +112,7 @@ export function updateNodeColorBuffer(
 
 export function createConnectedNodesBuffer(device: GPUDevice, nodeCount: number): GPUBuffer {
   const buffer = device.createBuffer({
+    label: 'Connected Nodes Buffer',
     size: nodeCount * 4,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
@@ -115,6 +124,7 @@ export function createConnectedNodesBuffer(device: GPUDevice, nodeCount: number)
 }
 export function createEdgeHighlightingBuffer(device: GPUDevice, edgeCount: number): GPUBuffer {
   const buffer = device.createBuffer({
+    label: 'Edge Highlighting Buffer',
     size: edgeCount * 4,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
@@ -131,11 +141,13 @@ export function createNodeInstanceIndexBuffers(
   const size = Math.max(1, nodeCount) * 4;
 
   const opaqueBuffer = device.createBuffer({
+    label: 'Node Instance Index Opaque Buffer',
     size,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
 
   const transparentBuffer = device.createBuffer({
+    label: 'Node Instance Index Transparent Buffer',
     size,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
@@ -159,6 +171,7 @@ export function createPieceColorsBuffer(device: GPUDevice, pieceColors: [number,
   }
 
   const buffer = device.createBuffer({
+    label: 'Piece Colors Buffer',
     size: pieceColorData.byteLength,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
@@ -170,6 +183,7 @@ export function createPieceColorsBuffer(device: GPUDevice, pieceColors: [number,
 
 export function createSphereVertexBuffer(device: GPUDevice, vertexData: Float32Array<ArrayBuffer>): GPUBuffer {
   const buffer = device.createBuffer({
+    label: 'Sphere Vertex Buffer',
     size: vertexData.byteLength,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });

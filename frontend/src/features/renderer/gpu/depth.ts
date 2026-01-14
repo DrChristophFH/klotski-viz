@@ -4,6 +4,7 @@ export function createDepthTexture(device: GPUDevice, width: number, height: num
   const validHeight = Math.max(1, height);
 
   return device.createTexture({
+    label: 'Depth Texture',
     size: [validWidth, validHeight],
     format: 'depth24plus',
     usage: GPUTextureUsage.RENDER_ATTACHMENT,

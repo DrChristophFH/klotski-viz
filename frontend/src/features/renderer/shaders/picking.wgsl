@@ -18,7 +18,7 @@ struct Node {
 
 struct VertexOutput {
   @builtin(position) position: vec4<f32>,
-  @location(0) nodeIndex: u32,
+  @location(0) @interpolate(flat) nodeIndex: u32,
 }
 
 @vertex
